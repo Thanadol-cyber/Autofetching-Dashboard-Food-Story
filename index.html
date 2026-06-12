@@ -125,35 +125,9 @@
                         <p class="text-sm text-gray-500">Sales & Payment Analytics</p>
                     </div>
                 </div>
-                
-                <div id="dropZone" class="print:hidden relative group w-full md:w-auto min-w-[320px] flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 hover:border-orange-500 hover:bg-orange-50 transition-all cursor-pointer">
-                    <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" multiple class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
-                    <div class="flex items-center gap-3 text-center pointer-events-none">
-                        <div class="bg-white p-2 rounded-lg shadow-sm group-hover:scale-110 transition-transform">
-                            <i class="fas fa-file-excel text-green-600 text-2xl"></i>
-                        </div>
-                        <div class="text-left">
-                            <p class="text-sm font-semibold text-gray-700"><span class="text-orange-600">คลิกเพื่อเลือกไฟล์</span></p>
-                            <p class="text-xs text-gray-400 mt-0.5">ลากไฟล์ลงกล่องนี้อัปโหลดเองได้</p>
-                        </div>
-                    </div>
-                </div>
             </header>
 
             <main>
-                <div id="errorMessage" class="hidden mb-6 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg shadow-sm flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <i class="fas fa-exclamation-circle text-xl"></i>
-                        <div>
-                            <p class="font-bold">เกิดข้อผิดพลาด</p>
-                            <p class="text-sm" id="errorText">ไม่พบข้อมูลรายงานที่รองรับ กรุณาตรวจสอบไฟล์อีกครั้ง</p>
-                        </div>
-                    </div>
-                    <button onclick="document.getElementById('errorMessage').classList.add('hidden')" class="text-red-700 hover:text-red-900 font-bold">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-
                 <!-- EMPTY STATE -->
                 <div id="emptyState" class="print:hidden flex flex-col items-center justify-center py-20 text-center bg-white rounded-2xl border-2 border-dashed border-gray-300 shadow-sm transition-all hover:border-orange-400 hover:bg-orange-50/50 relative">
                     <i class="fas fa-magic text-6xl text-gray-200 mb-4 pointer-events-none"></i>
@@ -419,8 +393,8 @@
 
             <div id="voidUploadContainer" class="mb-8 bg-white p-6 md:p-10 rounded-2xl shadow-sm border border-gray-200">
                 <div class="text-center">
-                    <h2 class="text-xl font-semibold mb-2 text-themeBlack">อัปโหลดข้อมูล (Excel / CSV)</h2>
-                    <p class="text-gray-500 text-sm mb-6">รองรับไฟล์ .xlsx, .xls และ .csv ทั้งหมดแบบอัตโนมัติ</p>
+                    <h2 class="text-xl font-semibold mb-2 text-themeBlack">รอโหลดข้อมูลอัตโนมัติ หรือ ลากไฟล์มาวางที่นี่</h2>
+                    <p class="text-gray-500 text-sm mb-6">ระบบจะดึงไฟล์ /data/ ให้อัตโนมัติ หรือจะอัปโหลดเองก็ได้</p>
                     
                     <div id="voidDropZone" class="upload-area border-2 border-dashed border-gray-300 rounded-xl p-8 transition-colors duration-200 cursor-pointer relative hover:bg-gray-50">
                         <input type="file" id="voidFileInput" accept=".csv, .xlsx, .xls" multiple class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="window.handleGlobalFiles(this.files)">
@@ -504,27 +478,36 @@
     <!-- SCRIPTS SECTION: Central Core & Logic                      -->
     <!-- ========================================================= -->
     <script>
-        // ฟังก์ชันอ่าน Workbook ครอบจักรวาล (แก้ปัญหาเข้ารหัสภาษาไทย)
+        // =======================================================
+        // ฟังก์ชันอ่านไฟล์ Universal (ถอดรหัสภาษาไทย TIS-620 / ตรวจจับไฟล์ขยะ)
+        // =======================================================
         function readWorkbookUniversal(buffer) {
-            try {
-                return XLSX.read(buffer, { type: 'array' });
-            } catch (err1) {
-                let textCheck = new TextDecoder("utf-8").decode(buffer);
-                // ถ้า UTF-8 มีปัญหาในการอ่านไทย หรืออ่านเป็นไฟล์ HTML ขยะ
-                if (textCheck.includes('') || (!textCheck.includes('วันที่') && !textCheck.includes('ยอด') && !textCheck.includes('ชื่อสินค้า') && !text.includes('สถานะ'))) {
-                    try {
-                        const tisText = new TextDecoder("windows-874").decode(buffer);
-                        if (tisText.includes('วันที่') || tisText.includes('ยอด') || tisText.includes('ชื่อสินค้า') || tisText.includes('สถานะ')) {
-                            textCheck = tisText;
-                        }
-                    } catch(e) {}
-                }
-                // ถ้ายังเป็นไฟล์ขยะ (HTML 404) ให้ส่ง error ออกไปเพื่อข้าม
-                if (textCheck.trim().toLowerCase().startsWith('<!doctype') || textCheck.trim().toLowerCase().startsWith('<html')) {
-                    throw new Error("Invalid file content");
-                }
-                return XLSX.read(textCheck, { type: 'string', raw: false });
+            const utf8Text = new TextDecoder("utf-8").decode(buffer).trim();
+            if (utf8Text.toLowerCase().startsWith('<!doctype') || utf8Text.toLowerCase().startsWith('<html')) {
+                throw new Error("HTML File");
             }
+
+            try {
+                const arr = new Uint8Array(buffer);
+                const isZip = arr[0] === 0x50 && arr[1] === 0x4B; 
+                const isXls = arr[0] === 0xD0 && arr[1] === 0xCF; 
+                if (isZip || isXls) {
+                    return XLSX.read(buffer, { type: 'array' });
+                }
+            } catch(e) {}
+
+            let textData = new TextDecoder("utf-8").decode(buffer);
+            if (!textData.includes('วันที่') && !textData.includes('ชื่อสินค้า') && !textData.includes('ยอด')) {
+                try {
+                    const tisText = new TextDecoder("windows-874").decode(buffer);
+                    if (tisText.includes('วันที่') || tisText.includes('ชื่อสินค้า') || tisText.includes('ยอด')) {
+                        textData = tisText;
+                    }
+                } catch(e) {}
+            }
+            
+            textData = textData.replace(/^\uFEFF/, '');
+            return XLSX.read(textData, { type: 'string', raw: false });
         }
 
         window.allCategoryRows = [];
@@ -566,7 +549,7 @@
         }
 
         // ========================================================
-        // ฟังก์ชันโหลดไฟล์อัตโนมัติ (Parallel Fetch + เคลียร์ Bug)
+        // ฟังก์ชันโหลดไฟล์อัตโนมัติ (Parallel Fetch)
         // ========================================================
         async function fetchDefaultData() {
             const overlay = document.getElementById('globalLoadingOverlay');
@@ -575,7 +558,6 @@
             overlay.classList.remove('hidden');
             overlay.classList.add('flex');
 
-            // เพิ่มครอบคลุมเลขหลักเดียวด้วย และชื่อไฟล์แบบไม่สนพิมพ์เล็กใหญ่
             const months = ['1','2','3','4','5','6','7','8','9','10','11','12','01','02','03','04','05','06','07','08','09'];
             const types = ['sales','payment','category','void', 'Category', 'Void', 'Sales', 'Payment'];
             const exts = ['.csv', '.xlsx'];
@@ -640,11 +622,12 @@
                         document.getElementById('tabsWrapper').classList.remove('hidden');
                         buildTabs();
                         
-                        // ฟิลเตอร์หาเฉพาะ Tab ที่มีข้อมูลก่อน แล้วค่อยสั่งแสดง
+                        // กรองเฉพาะ Tab ที่มีข้อมูล
                         const validKeys = Object.keys(datasets).filter(k => {
                             const hasDaily = datasets[k].dailyData && datasets[k].dailyData.length > 0;
                             const hasPayment = datasets[k].paymentData && datasets[k].paymentData.length > 0;
-                            return hasDaily || hasPayment;
+                            const hasSales = datasets[k].summary && datasets[k].summary.totalNetSales > 0;
+                            return (hasDaily || hasPayment) && hasSales;
                         });
                         const tabKeys = validKeys.sort((a, b) => (datasets[a].sortDate || 0) - (datasets[b].sortDate || 0));
                         if (tabKeys.length > 1) switchTab('compare'); else if(tabKeys.length === 1) switchTab(tabKeys[0]);
@@ -723,7 +706,8 @@
                         const validKeys = Object.keys(datasets).filter(k => {
                             const hasDaily = datasets[k].dailyData && datasets[k].dailyData.length > 0;
                             const hasPayment = datasets[k].paymentData && datasets[k].paymentData.length > 0;
-                            return hasDaily || hasPayment;
+                            const hasSales = datasets[k].summary && datasets[k].summary.totalNetSales > 0;
+                            return (hasDaily || hasPayment) && hasSales;
                         });
                         const tabKeys = validKeys.sort((a, b) => (datasets[a].sortDate || 0) - (datasets[b].sortDate || 0));
                         if (tabKeys.length > 1) switchTab('compare'); else if(tabKeys.length === 1) switchTab(tabKeys[0]);
@@ -874,7 +858,6 @@
                     break;
                 }
             }
-            // แก้ไข: ตัดระบบ Fallback เดาไฟล์ขยะทิ้ง ถ้าไม่ใช่รีพอร์ตชำระเงินให้ return null เลย
             if (headerIdx === -1 || colMap.type === undefined) return null;
             
             const targetCol = colMap.net !== undefined ? colMap.net : (colMap.pretax !== undefined ? colMap.pretax : colMap.type + 1);
@@ -918,7 +901,6 @@
                 }
             }
             
-            // แก้ไข: ตัดระบบเดามั่ว (headerIdx = 0) ออก ป้องกันการสร้าง Tab เปล่าเวลามีคนโยนไฟล์ผิด
             if (headerIdx === -1 || colMap.date === undefined) return null;
 
             let rowDataList = [], summary = { totalSales: 0, totalNetSales: 0, totalDiscount: 0, totalBills: 0, weekdaySales: 0, weekendSales: 0, daysCount: 0 }, firstValidDateObj = null;
@@ -977,7 +959,8 @@
             const validKeys = Object.keys(datasets).filter(k => {
                 const hasDaily = datasets[k].dailyData && datasets[k].dailyData.length > 0;
                 const hasPayment = datasets[k].paymentData && datasets[k].paymentData.length > 0;
-                return hasDaily || hasPayment;
+                const hasSales = datasets[k].summary && datasets[k].summary.totalNetSales > 0;
+                return (hasDaily || hasPayment) && hasSales;
             });
             const tabKeys = validKeys.sort((a, b) => (datasets[a].sortDate || 0) - (datasets[b].sortDate || 0));
             
@@ -1037,7 +1020,8 @@
             const validKeys = Object.keys(datasets).filter(k => {
                 const hasDaily = datasets[k].dailyData && datasets[k].dailyData.length > 0;
                 const hasPayment = datasets[k].paymentData && datasets[k].paymentData.length > 0;
-                return hasDaily || hasPayment;
+                const hasSales = datasets[k].summary && datasets[k].summary.totalNetSales > 0;
+                return (hasDaily || hasPayment) && hasSales;
             });
             const sortedKeys = validKeys.sort((a, b) => (datasets[a].sortDate || 0) - (datasets[b].sortDate || 0));
             const totalMonths = sortedKeys.length;
@@ -1366,7 +1350,6 @@
             };
             defaultLogo.src = './Logo.jpg';
             
-            // ทำให้ React รับข้อมูลหลายไฟล์พร้อมกันแบบสมบูรณ์
             window.triggerCategoryRender = (dataArr) => {
                 const allParsed = [];
                 dataArr.forEach(rawRows => {
@@ -1375,13 +1358,11 @@
                 });
                 if (allParsed.length > 0) {
                     generatePivotData(allParsed);
-                    // ปิดหน้าอัปโหลดของ Tab นื้
                     const emptySt = document.getElementById('emptyState');
                     if(emptySt) emptySt.classList.add('hidden');
                 }
             };
 
-            // ตรวจสอบว่าถ้ามีคิวรอไว้ก่อนหน้านี้ ให้ Render เลย
             if (window.allCategoryRows && window.allCategoryRows.length > 0) {
                 window.triggerCategoryRender(window.allCategoryRows);
             }
@@ -1470,7 +1451,6 @@
 
                   let day, month, year;
 
-                  // ถอดรหัสวันที่แบบ Excel Serial
                   if (typeof rawDate === 'number') {
                       let d = new Date(Math.round((rawDate - 25569) * 86400 * 1000));
                       day = d.getDate(); month = d.getMonth() + 1; year = d.getFullYear();
@@ -2144,12 +2124,10 @@
 
     <!-- Script 4: Void Report Logic -->
     <script>
-        let voidChartInst = null; 
-        
         window.processVoidData = function(rows) {
             let headerRowIndex = -1;
             for (let i = 0; i < Math.min(10, rows.length); i++) {
-                const rowStr = rows[i].join('').toLowerCase();
+                const rowStr = (rows[i] || []).map(c => c !== undefined && c !== null ? c.toString().replace(/\s/g, '') : '').join('').toLowerCase();
                 if (rowStr.includes('ชื่อสินค้า') && rowStr.includes('สถานะ')) {
                     headerRowIndex = i;
                     break;
@@ -2234,7 +2212,6 @@
                 }
             }
 
-            // ถ้าไม่มีบิลถูกยกเลิก ให้แสดงผลว่า ยินดีด้วย!
             if (Object.keys(window.globalVoidPivotData).length === 0) {
                 document.getElementById('voidUploadContainer').classList.add('hidden');
                 document.getElementById('voidDashboardContainer').classList.remove('hidden');
@@ -2249,6 +2226,11 @@
             document.getElementById('voidUploadContainer').classList.add('hidden');
             document.getElementById('voidDashboardContainer').classList.remove('hidden');
             document.getElementById('voidDashboardContainer').classList.add('grid');
+
+            if (window.voidChartInst) {
+                window.voidChartInst.destroy();
+                window.voidChartInst = null;
+            }
 
             renderVoidPivotTable(window.globalVoidPivotData, window.globalVoidTotals.cancel, window.globalVoidTotals.void, window.globalVoidTotals.value);
             setTimeout(() => renderVoidChart(window.globalChartDataRaw, window.globalVoidTotals.cancel, window.globalVoidTotals.void), 100);
@@ -2314,9 +2296,7 @@
             const cancelSeriesData = labels.map(date => ({ y: chartDataRaw[date].cancel, value: chartDataRaw[date].cancelValue }));
             const voidSeriesData = labels.map(date => ({ y: chartDataRaw[date].void, value: chartDataRaw[date].voidValue }));
 
-            if (voidChartInst) voidChartInst.destroy();
-
-            voidChartInst = Highcharts.chart('voidCancelChart', {
+            window.voidChartInst = Highcharts.chart('voidCancelChart', {
                 chart: { type: 'column', backgroundColor: 'transparent', style: { fontFamily: '"Noto Sans Thai", sans-serif' } },
                 title: { text: null },
                 xAxis: { categories: labels, labels: { style: { color: '#4B5563' } } },
@@ -2486,6 +2466,10 @@
             window.globalVoidPivotData = {};
             window.globalChartDataRaw = {};
             window.globalVoidTotals = { cancel: 0, void: 0, value: 0 };
+            if (window.voidChartInst) {
+                window.voidChartInst.destroy();
+                window.voidChartInst = null;
+            }
             if(document.getElementById('voidFileInput')) document.getElementById('voidFileInput').value = ''; 
         }
     </script>
