@@ -160,7 +160,7 @@
                     <h2 class="text-xl font-semibold text-gray-700 mb-2 pointer-events-none">ลากไฟล์รายงานทั้งหมดมาวางที่นี่ทีเดียวได้เลย</h2>
                     <p class="text-gray-500 max-w-md pointer-events-none mb-2">ระบบประมวลผลอัจฉริยะ จะแยกแยะไฟล์ส่งไปยัง Tab ต่างๆ ให้อัตโนมัติ</p>
                     <p class="text-sm text-orange-600 font-medium pointer-events-none mb-6 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
-                        <i class="fas fa-server"></i> หากต้องการให้โหลดอัตโนมัติ ให้เปลี่ยนชื่อไฟล์เป็น <b>sales-01.csv, category-01.csv</b> ฯลฯ ไว้ในโฟลเดอร์ /data/
+                        <i class="fas fa-server"></i> หากต้องการให้โหลดอัตโนมัติ ให้เปลี่ยนชื่อไฟล์เป็น <b>sales-05.csv, category-05.csv</b> ฯลฯ ไว้ในโฟลเดอร์ /data/
                     </p>
                     
                     <div class="flex flex-wrap gap-4 justify-center">
@@ -500,9 +500,8 @@
         </div>
     </div>
 
-
     <!-- ========================================================= -->
-    <!-- SCRIPTS SECTION: Global & Logic                            -->
+    <!-- SCRIPTS SECTION: Central Core & Logic                      -->
     <!-- ========================================================= -->
     <script>
         // 1. ระบบ Queue เพื่อป้องกันปัญหาการอ่านไฟล์ตอน React ยังโหลดไม่เสร็จ
@@ -548,12 +547,12 @@
         }
 
         // ========================================================
-        // ฟังก์ชันโหลดไฟล์อัตโนมัติจาก Vercel/GitHub (โหลดพร้อมกันเพื่อความรวดเร็ว)
+        // ฟังก์ชันโหลดไฟล์อัตโนมัติจาก Vercel/GitHub (ดึงแบบ Parallel)
         // ========================================================
         async function fetchDefaultData() {
             const overlay = document.getElementById('globalLoadingOverlay');
             document.getElementById('loadingTitle').innerText = "กำลังค้นหาข้อมูลอัตโนมัติ...";
-            document.getElementById('loadingSub').innerText = "รอสักครู่ ระบบกำลังดึงฐานข้อมูลจากโฟลเดอร์ data/ อย่างรวดเร็ว";
+            document.getElementById('loadingSub').innerText = "รอสักครู่ ระบบกำลังดึงฐานข้อมูลจากโฟลเดอร์ data/";
             overlay.classList.remove('hidden');
             overlay.classList.add('flex');
 
@@ -576,15 +575,14 @@
             let loadedMendori = 0, loadedCategory = 0, loadedVoid = 0;
 
             try {
-                // ยิงคำขอหาไฟล์ทั้งหมด "พร้อมกัน" (Parallel) ไม่ต้องรอทีละอัน
+                // ยิงคำขอหาไฟล์ทั้งหมด "พร้อมกัน" (Parallel Fetch) ช่วยลดเวลาจาก 30 วิ เหลือ 1 วิ!
                 const fetchPromises = urlsToTry.map(filePath => 
                     fetch(filePath).then(res => {
                         if(res.ok) return res.arrayBuffer().then(buffer => ({ filePath, buffer }));
-                        return null; // ข้ามไฟล์ที่ไม่มี
+                        return null; // ข้ามไฟล์ที่ไม่มีเงียบๆ
                     }).catch(() => null)
                 );
 
-                // รอจนกว่าจะหาครบทุกอันเสร็จ (ใช้เวลา < 1 วินาที เพราะทำพร้อมกัน)
                 const results = await Promise.all(fetchPromises);
                 const validResults = results.filter(r => r !== null);
 
@@ -603,6 +601,7 @@
                         const rawJson = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: '' });
                         const sampleStr = rawJson.slice(0, 20).map(r => r ? r.join('').toLowerCase() : '').join(' ');
                         
+                        // Smart Parsing แยกประเภทไฟล์
                         const isCategory = filePath.includes('category') || filePath.includes('ยอดขายสินค้าตามวัน') || (sampleStr.includes('ชื่อสินค้า') && sampleStr.includes('จำนวนการขาย') && !sampleStr.includes('สถานะ'));
                         const isVoid = filePath.includes('void') || filePath.includes('สถานะสั่ง') || filePath.includes('สถานะการสั่ง') || (sampleStr.includes('ชื่อสินค้า') && sampleStr.includes('สถานะ'));
 
@@ -622,7 +621,7 @@
                     }
                 }
 
-                // ถ้ามีข้อมูลสำเร็จ ให้แสดงผล
+                // สั่งแสดงผลถ้ามีข้อมูลสำเร็จ
                 if (loadedMendori > 0 || loadedCategory > 0 || loadedVoid > 0) {
                     if (loadedMendori > 0) {
                         document.getElementById('emptyState').classList.add('hidden');
@@ -724,21 +723,24 @@
                 console.error("Manual Upload Error:", e);
                 alert("เกิดข้อผิดพลาดระหว่างประมวลผลไฟล์");
             } finally {
-                // ต้องซ่อนหน้าจอดำเสมอ
                 overlay.classList.add('hidden');
                 overlay.classList.remove('flex');
             }
         };
 
         window.addEventListener('DOMContentLoaded', () => {
-            // รอให้ไลบรารีทุกตัวประมวลผลเสร็จก่อน ค่อยดึงข้อมูล (ลดเวลาหมุนลง)
+            // รอให้ไลบรารีทุกตัวโหลดเสร็จก่อนค่อยทำงาน
             setTimeout(() => { fetchDefaultData(); }, 1200);
         });
-    </script>
 
-    <!-- Script 2: Mendori Ramen Parsing & Rendering Logic -->
-    <script>
-        // ... โค้ดส่วน Mendori ...
+        // -------------------------------------------------------------
+        // Mendori Ramen Parsing & Rendering Logic
+        // -------------------------------------------------------------
+        let datasets = {}; 
+        let activeTab = null;
+        let chartInst = { compareSales: null, comparePayment: null, singleSales: null, singleWeekend: null, singlePayment: null };
+        let currentDailyTarget = 15000;
+
         const paymentColors = [
             { key: 'k plus', color: '#16a34a' }, { key: 'kplus', color: '#16a34a' },      
             { key: 'พร้อมเพย์ (edc)', color: '#fdba74' }, { key: 'พร้อมเพย์', color: '#ea580c' },      
@@ -804,17 +806,31 @@
 
         function extractMonthFromFilename(filename) {
             const engMonths = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+            const thMonthsFull = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
             const lowerName = filename.toLowerCase();
             let monthIdx = -1, year = -1;
-            for(let i=0; i<engMonths.length; i++) { if(lowerName.includes(engMonths[i])) { monthIdx = i; break; } }
+            
+            for(let i=0; i<engMonths.length; i++) { 
+                if(lowerName.includes(engMonths[i]) || lowerName.includes(thMonthsFull[i])) { monthIdx = i; break; } 
+            }
+            
+            // อ่านค่าเลขจาก -01, -05 ฯลฯ ถ้าระบุชื่อแบบใหม่
+            const numMatch = lowerName.match(/-(\d{2})\./);
+            if(numMatch && monthIdx === -1) {
+                let mNum = parseInt(numMatch[1]);
+                if(mNum >= 1 && mNum <= 12) monthIdx = mNum - 1;
+            }
+
             const yearMatch = filename.match(/(20\d{2}|25\d{2})/);
             if(yearMatch) year = parseInt(yearMatch[1]);
-            if(monthIdx !== -1 && year !== -1) {
+            else year = new Date().getFullYear();
+
+            if(monthIdx !== -1) {
                 let jsYear = year > 2500 ? year - 543 : year;
                 let d = new Date(jsYear, monthIdx, 1);
                 return { monthName: d.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' }), sortDate: d.getTime() };
             }
-            return null;
+            return { monthName: filename, sortDate: 0 }; 
         }
 
         function parsePaymentData(rawData, filename) {
