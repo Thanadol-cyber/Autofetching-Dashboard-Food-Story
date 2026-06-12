@@ -154,7 +154,7 @@
                     </button>
                 </div>
 
-                <!-- EMPTY STATE -->
+                <!-- EMPTY STATE: คงอยู่ถ้าไม่เจอไฟล์บนเซิร์ฟเวอร์ -->
                 <div id="emptyState" class="print:hidden flex flex-col items-center justify-center py-20 text-center bg-white rounded-2xl border-2 border-dashed border-gray-300 shadow-sm transition-all hover:border-orange-400 hover:bg-orange-50/50 relative">
                     <i class="fas fa-magic text-6xl text-gray-200 mb-4 pointer-events-none"></i>
                     <h2 class="text-xl font-semibold text-gray-700 mb-2 pointer-events-none">ลากไฟล์รายงานทั้งหมดมาวางที่นี่ทีเดียวได้เลย</h2>
@@ -548,12 +548,12 @@
         }
 
         // ========================================================
-        // ฟังก์ชันโหลดไฟล์อัตโนมัติจาก Vercel/GitHub
+        // ฟังก์ชันโหลดไฟล์อัตโนมัติจาก Vercel/GitHub (โหลดพร้อมกันเพื่อความรวดเร็ว)
         // ========================================================
         async function fetchDefaultData() {
             const overlay = document.getElementById('globalLoadingOverlay');
             document.getElementById('loadingTitle').innerText = "กำลังค้นหาข้อมูลอัตโนมัติ...";
-            document.getElementById('loadingSub').innerText = "รอสักครู่ ระบบกำลังดึงฐานข้อมูลจากโฟลเดอร์ data/";
+            document.getElementById('loadingSub').innerText = "รอสักครู่ ระบบกำลังดึงฐานข้อมูลจากโฟลเดอร์ data/ อย่างรวดเร็ว";
             overlay.classList.remove('hidden');
             overlay.classList.add('flex');
 
@@ -562,6 +562,7 @@
             const exts = ['.csv', '.xlsx'];
             const urlsToTry = [];
             
+            // สร้างลิงก์ที่จะไปหา
             types.forEach(type => {
                 months.forEach(month => {
                     exts.forEach(ext => urlsToTry.push(`./data/${type}-${month}${ext}`));
@@ -575,12 +576,22 @@
             let loadedMendori = 0, loadedCategory = 0, loadedVoid = 0;
 
             try {
-                for (const filePath of urlsToTry) {
-                    try {
-                        const response = await fetch(filePath);
-                        if (!response.ok) continue; // หาไม่เจอให้ข้ามไป
+                // ยิงคำขอหาไฟล์ทั้งหมด "พร้อมกัน" (Parallel) ไม่ต้องรอทีละอัน
+                const fetchPromises = urlsToTry.map(filePath => 
+                    fetch(filePath).then(res => {
+                        if(res.ok) return res.arrayBuffer().then(buffer => ({ filePath, buffer }));
+                        return null; // ข้ามไฟล์ที่ไม่มี
+                    }).catch(() => null)
+                );
 
-                        const buffer = await response.arrayBuffer();
+                // รอจนกว่าจะหาครบทุกอันเสร็จ (ใช้เวลา < 1 วินาที เพราะทำพร้อมกัน)
+                const results = await Promise.all(fetchPromises);
+                const validResults = results.filter(r => r !== null);
+
+                // วนลูปประมวลผลไฟล์ที่หาเจอ
+                for (const fileData of validResults) {
+                    try {
+                        const { filePath, buffer } = fileData;
                         let workbook;
                         if (filePath.toLowerCase().endsWith('.csv')) {
                             const text = new TextDecoder("utf-8").decode(buffer);
@@ -607,10 +618,11 @@
                             if(parsed) { mergeDataset(parsed, 'daily'); loadedMendori++; }
                         }
                     } catch(e) {
-                        console.log(`ข้ามไฟล์: ${filePath}`);
+                        console.log(`ประมวลผลไม่ได้: ${fileData.filePath}`);
                     }
                 }
 
+                // ถ้ามีข้อมูลสำเร็จ ให้แสดงผล
                 if (loadedMendori > 0 || loadedCategory > 0 || loadedVoid > 0) {
                     if (loadedMendori > 0) {
                         document.getElementById('emptyState').classList.add('hidden');
@@ -621,11 +633,12 @@
                     }
 
                     let toastMsgs = [];
-                    if(loadedMendori > 0) toastMsgs.push(`• Sales & Payment: อ่านข้อมูล ${loadedMendori} เดือน`);
-                    if(loadedCategory > 0) toastMsgs.push(`• Category Report: อ่านข้อมูล ${loadedCategory} เดือน`);
-                    if(loadedVoid > 0) toastMsgs.push(`• Void Report: อ่านข้อมูล ${loadedVoid} เดือน`);
+                    if(loadedMendori > 0) toastMsgs.push(`• Sales & Payment: อ่านข้อมูล ${loadedMendori} ไฟล์`);
+                    if(loadedCategory > 0) toastMsgs.push(`• Category Report: อ่านข้อมูล ${loadedCategory} ไฟล์`);
+                    if(loadedVoid > 0) toastMsgs.push(`• Void Report: อ่านข้อมูล ${loadedVoid} ไฟล์`);
                     showToast(toastMsgs);
 
+                    // เด้งไปหน้า Tab ที่มีข้อมูล
                     if (loadedMendori > 0) switchGlobalTab('mendori');
                     else if (loadedCategory > 0) switchGlobalTab('foodstory');
                     else if (loadedVoid > 0) switchGlobalTab('void');
@@ -633,7 +646,7 @@
             } catch (err) {
                 console.error("Auto Fetch Error:", err);
             } finally {
-                // ต้องซ่อนหน้าจอดำเสมอ
+                // ซ่อนหน้าจอดำเสมอ ไม่ว่าจะเกิดอะไรขึ้น
                 overlay.classList.add('hidden');
                 overlay.classList.remove('flex');
             }
@@ -718,6 +731,7 @@
         };
 
         window.addEventListener('DOMContentLoaded', () => {
+            // รอให้ไลบรารีทุกตัวประมวลผลเสร็จก่อน ค่อยดึงข้อมูล (ลดเวลาหมุนลง)
             setTimeout(() => { fetchDefaultData(); }, 1200);
         });
     </script>
@@ -1292,13 +1306,21 @@
             };
             defaultLogo.src = './Logo.jpg';
             
+            // ทำให้ React รับข้อมูลหลายไฟล์พร้อมกันแบบสมบูรณ์
             window.triggerCategoryRender = (dataArr) => {
-                generatePivotData(dataArr);
+                const allParsed = [];
+                dataArr.forEach(rawRows => {
+                    const parsed = process2DArray(rawRows);
+                    if (parsed && parsed.length > 0) allParsed.push(parsed);
+                });
+                if (allParsed.length > 0) {
+                    generatePivotData(allParsed);
+                }
             };
 
             // ตรวจสอบว่าถ้ามีคิวรอไว้ก่อนหน้านี้ ให้ Render เลย
             if (window.allCategoryRows && window.allCategoryRows.length > 0) {
-                generatePivotData(window.allCategoryRows);
+                window.triggerCategoryRender(window.allCategoryRows);
             }
             
             return () => {
@@ -2343,7 +2365,7 @@
                 wsDet.mergeCells(`A${footRow.number}:E${footRow.number}`);
                 footRow.getCell(1).alignment = { horizontal: 'right' };
 
-                wsDet.getColumn(1).width = 15; wsDet.getColumn(2).width = 15; wsDet.getColumn(3).width = 12; ws戸.getColumn(4).width = 35; wsDet.getColumn(5).width = 25; wsDet.getColumn(6).width = 10; wsDet.getColumn(7).width = 10; wsDet.getColumn(8).width = 15;
+                wsDet.getColumn(1).width = 15; wsDet.getColumn(2).width = 15; wsDet.getColumn(3).width = 12; wsDet.getColumn(4).width = 35; wsDet.getColumn(5).width = 25; wsDet.getColumn(6).width = 10; wsDet.getColumn(7).width = 10; wsDet.getColumn(8).width = 15;
 
                 const buffer = await wb.xlsx.writeBuffer();
                 const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
