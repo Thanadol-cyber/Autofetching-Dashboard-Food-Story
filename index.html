@@ -582,6 +582,45 @@
         }
 
         // ========================================================
+        // ฟังก์ชันประมวลผลจับคู่ Dataset เข้าด้วยกัน
+        // ========================================================
+        function normalizeDatasets() {
+            const keys = Object.keys(datasets);
+            
+            // หา Key ที่มีแต่ Payment (ไม่มี Daily)
+            const paymentOnlyKeys = keys.filter(k => 
+                datasets[k].paymentData && 
+                datasets[k].paymentData.length > 0 && 
+                (!datasets[k].summary || datasets[k].summary.totalNetSales === 0)
+            );
+            
+            // หา Key ที่มี Daily Data (เป็นหลัก)
+            const dailyKeys = keys.filter(k => 
+                datasets[k].summary && datasets[k].summary.totalNetSales > 0
+            );
+
+            paymentOnlyKeys.forEach(pKey => {
+                const pMonth = pKey.split(' ')[0]; // ดึงเฉพาะชื่อเดือน เช่น "เมษายน" หรือ "payment.csv"
+                
+                // หา Daily Key ที่มีชื่อเดือนขึ้นต้นตรงกัน
+                let match = dailyKeys.find(dKey => dKey.startsWith(pMonth));
+                
+                // Fallback: ถ้าหาไม่เจอ แต่มีข้อมูลขายแค่เดือนเดียว ให้เหมาว่า payment นี้เป็นของเดือนนั้นเลย
+                if (!match && dailyKeys.length === 1) {
+                    match = dailyKeys[0];
+                }
+
+                if (match) {
+                    // ถ้ารวมข้อมูล ให้ต่อ array (เผื่อมี payment หลายไฟล์ในเดือนเดียว)
+                    datasets[match].paymentData = (datasets[match].paymentData && datasets[match].paymentData.length > 0) 
+                        ? datasets[match].paymentData.concat(datasets[pKey].paymentData)
+                        : datasets[pKey].paymentData;
+                    delete datasets[pKey]; // ลบข้อมูลที่ลอยอยู่ทิ้ง
+                }
+            });
+        }
+
+        // ========================================================
         // ฟังก์ชันโหลดไฟล์อัตโนมัติ (Parallel Fetch)
         // ========================================================
         async function fetchDefaultData() {
@@ -670,6 +709,9 @@
                     }
                     window.dispatchEvent(new CustomEvent('updateCategoryReact'));
                 }
+
+                // สั่งประมวลผลจับคู่ข้อมูลที่ขาดหายไป
+                normalizeDatasets();
 
                 if (loadedMendori > 0 || loadedCategory > 0 || loadedVoid > 0) {
                     if (loadedMendori > 0) {
@@ -766,6 +808,9 @@
                 if (loadedCategory > 0) {
                     window.dispatchEvent(new CustomEvent('updateCategoryReact'));
                 }
+
+                // สั่งประมวลผลจับคู่ข้อมูลที่ขาดหายไป
+                normalizeDatasets();
 
                 if (loadedMendori > 0 || loadedCategory > 0 || loadedVoid > 0) {
                     if (loadedMendori > 0) {
