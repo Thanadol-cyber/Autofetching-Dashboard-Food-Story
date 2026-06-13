@@ -3,10 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Auto-Fetch Dashboard</title>
-    
-    <!-- ================= SHARED LIBRARIES ================= -->
+    <title>Mendori Ramen - Sales & Payment Dashboard</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS (xlsx) for Excel/CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- React & Babel -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
     <script>
         tailwind.config = {
             theme: {
@@ -21,21 +36,10 @@
             }
         }
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highcharts/11.4.0/highcharts.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;600;700&display=swap" rel="stylesheet">
-    
     <style>
-        body { background-color: #f3f4f6; margin: 0; padding: 0; }
-        #mendori-wrapper { font-family: 'Prompt', sans-serif; }
+        body { font-family: 'Prompt', sans-serif; background-color: #f3f4f6; }
+        /* ซ่อน Scrollbar ของแถบ Tab แต่ยังเลื่อนได้ */
         .tabs-container::-webkit-scrollbar { display: none; }
         .tabs-container { -ms-overflow-style: none; scrollbar-width: none; }
         
@@ -54,6 +58,7 @@
         #void-wrapper ::-webkit-scrollbar-thumb:hover { background: #e07b00; }
         .upload-area.dragover { background-color: #FFF3E0; border-color: #FF8C00; }
 
+        /* ตั้งค่าสำหรับการ Print / เซฟ PDF */
         @media print {
             .global-tab-bar { display: none !important; }
             body { background-color: #ffffff !important; }
@@ -108,6 +113,7 @@
         <div id="app" class="min-h-screen p-4 md:p-8 max-w-7xl mx-auto">
             <header class="mb-6 flex flex-col md:flex-row md:items-start justify-between gap-6 border-b border-gray-200 pb-4">
                 <div class="flex items-center gap-4">
+                    <!-- รูป Logo -->
                     <div class="relative w-20 h-20 rounded-full overflow-hidden shadow-md border-2 border-orange-400 bg-white shrink-0 flex items-center justify-center cursor-pointer group" onclick="document.getElementById('logoInput').click()" title="คลิกเพื่อเปลี่ยนโลโก้">
                         <img id="dashboardLogo" src="Logo.jpg" alt="Mendori Ramen Logo" class="w-full h-full object-contain p-0.5 transition-opacity group-hover:opacity-50" onerror="this.src='https://placehold.co/100x100/orange/white?text=Logo'">
                         <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
@@ -126,6 +132,7 @@
                     </div>
                 </div>
                 
+                <!-- Drag & Drop Zone -->
                 <div id="dropZone" class="print:hidden relative group w-full md:w-auto min-w-[320px] flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 hover:border-orange-500 hover:bg-orange-50 transition-all cursor-pointer">
                     <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" multiple class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
                     <div class="flex items-center gap-3 text-center pointer-events-none">
@@ -133,15 +140,29 @@
                             <i class="fas fa-file-excel text-green-600 text-2xl"></i>
                         </div>
                         <div class="text-left">
-                            <p class="text-sm font-semibold text-gray-700"><span class="text-orange-600">คลิกเพื่อเลือกไฟล์</span></p>
-                            <p class="text-xs text-gray-400 mt-0.5">ลากไฟล์ลงกล่องนี้อัปโหลดเองได้</p>
+                            <p class="text-sm font-semibold text-gray-700"><span class="text-orange-600">คลิกอัปโหลด</span> หรือลากไฟล์มาวาง</p>
+                            <p class="text-xs text-gray-400 mt-0.5">รองรับไฟล์ "ยอดขายรายวัน" และ "การชำระเงิน"</p>
                         </div>
                     </div>
                 </div>
             </header>
 
             <main>
-                <!-- EMPTY STATE -->
+                <!-- Custom Error Message Box -->
+                <div id="errorMessage" class="hidden mb-6 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg shadow-sm flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-exclamation-circle text-xl"></i>
+                        <div>
+                            <p class="font-bold">เกิดข้อผิดพลาด</p>
+                            <p class="text-sm" id="errorText">ไม่พบข้อมูลรายงานที่รองรับ กรุณาตรวจสอบไฟล์อีกครั้ง</p>
+                        </div>
+                    </div>
+                    <button onclick="document.getElementById('errorMessage').classList.add('hidden')" class="text-red-700 hover:text-red-900 font-bold">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <!-- Empty State -->
                 <div id="emptyState" class="print:hidden flex flex-col items-center justify-center py-20 text-center bg-white rounded-2xl border-2 border-dashed border-gray-300 shadow-sm transition-all hover:border-orange-400 hover:bg-orange-50/50 relative">
                     <i class="fas fa-magic text-6xl text-gray-200 mb-4 pointer-events-none"></i>
                     <h2 class="text-xl font-semibold text-gray-700 mb-2 pointer-events-none">รอโหลดข้อมูลอัตโนมัติ หรือ ลากไฟล์มาวางที่นี่</h2>
@@ -162,14 +183,20 @@
                     </div>
                 </div>
 
-                <!-- TABS CONTENT -->
+                <!-- Tabs Navigation -->
                 <div id="tabsWrapper" class="hidden mb-6 relative print:hidden">
+                    <!-- ปุ่มเลื่อนซ้าย -->
                     <div class="absolute left-0 top-0 bottom-2 w-12 bg-gradient-to-r from-[#f3f4f6] to-transparent flex items-center justify-start z-10 pointer-events-none">
                         <button onclick="scrollTabs('left')" class="pointer-events-auto bg-white shadow-md border border-gray-200 rounded-full w-8 h-8 flex items-center justify-center text-gray-600 hover:text-orange-500 hover:bg-orange-50 transition-transform">
                             <i class="fas fa-chevron-left text-sm"></i>
                         </button>
                     </div>
-                    <div class="flex items-center gap-2 overflow-x-auto tabs-container pb-2 px-10 scroll-smooth" id="tabsContainer"></div>
+                    
+                    <div class="flex items-center gap-2 overflow-x-auto tabs-container pb-2 px-10 scroll-smooth" id="tabsContainer">
+                        <!-- Tabs will be injected here -->
+                    </div>
+
+                    <!-- ปุ่มเลื่อนขวา -->
                     <div class="absolute right-0 top-0 bottom-2 w-12 bg-gradient-to-l from-[#f3f4f6] to-transparent flex items-center justify-end z-10 pointer-events-none">
                         <button onclick="scrollTabs('right')" class="pointer-events-auto bg-white shadow-md border border-gray-200 rounded-full w-8 h-8 flex items-center justify-center text-gray-600 hover:text-orange-500 hover:bg-orange-50 transition-transform">
                             <i class="fas fa-chevron-right text-sm"></i>
@@ -177,7 +204,10 @@
                     </div>
                 </div>
 
+                <!-- ================= COMPARE CONTENT (Overview) ================= -->
                 <div id="compareContent" class="hidden space-y-6">
+                    
+                    <!-- Header -->
                     <div class="bg-gradient-to-r from-gray-800 to-gray-700 p-6 rounded-2xl shadow-sm text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
                             <h2 class="text-2xl font-bold mb-1">เปรียบเทียบภาพรวม (Overview)</h2>
@@ -189,6 +219,7 @@
                         </div>
                     </div>
 
+                    <!-- 5 Summary Cards -->
                     <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
                         <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center gap-2">
                             <div class="bg-orange-100 p-3 rounded-full text-orange-600"><i class="fas fa-coins text-xl"></i></div>
@@ -212,11 +243,13 @@
                         </div>
                     </div>
 
+                    <!-- Compare Charts Area -->
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 lg:col-span-2">
                             <h3 class="text-lg font-semibold text-gray-800 mb-4">เปรียบเทียบยอดขาย และ จำนวนบิล (รายเดือน)</h3>
                             <div class="relative h-80 w-full"><canvas id="compareSalesChart"></canvas></div>
                         </div>
+                        
                         <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative">
                             <h3 class="text-lg font-semibold text-gray-800 mb-4">สัดส่วนการชำระเงิน (รวมทุกเดือน)</h3>
                             <div class="relative h-80 w-full flex justify-center items-center">
@@ -229,6 +262,7 @@
                         </div>
                     </div>
 
+                    <!-- Compare Table (Sales) -->
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                         <div class="px-6 py-4 border-b border-gray-100 bg-gray-50"><h3 class="text-lg font-semibold text-gray-800">สรุปรายละเอียดรายเดือน</h3></div>
                         <div class="overflow-x-auto">
@@ -247,6 +281,7 @@
                         </div>
                     </div>
 
+                    <!-- Compare Payment Table (Month by Month) -->
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                         <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex flex-col md:flex-row md:items-center justify-between gap-2">
                             <h3 class="text-lg font-semibold text-gray-800">เปรียบเทียบการชำระเงินรายเดือน</h3>
@@ -254,14 +289,19 @@
                         </div>
                         <div class="overflow-x-auto">
                             <table class="w-full text-left border-collapse">
-                                <thead id="comparePaymentTableHead" class="bg-gray-100 text-gray-600 text-sm border-b"></thead>
+                                <thead id="comparePaymentTableHead" class="bg-gray-100 text-gray-600 text-sm border-b">
+                                    <!-- JS Populated -->
+                                </thead>
                                 <tbody id="comparePaymentTableBody" class="text-sm text-gray-700 divide-y divide-gray-100"></tbody>
                             </table>
                         </div>
                     </div>
                 </div>
 
+                <!-- ================= SINGLE MONTH CONTENT ================= -->
                 <div id="singleMonthContent" class="hidden space-y-6 print-page-break">
+                    
+                    <!-- Target Setting -->
                     <div class="print:hidden bg-white p-4 rounded-2xl shadow-sm flex flex-col sm:flex-row items-center gap-4 justify-between border-l-4 border-blue-500">
                         <div class="flex items-center gap-2">
                             <i class="fas fa-bullseye text-blue-500 text-xl"></i>
@@ -273,6 +313,7 @@
                         </div>
                     </div>
 
+                    <!-- 4 Summary Cards -->
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
                             <div class="bg-orange-100 p-3 rounded-full text-orange-600"><i class="fas fa-coins text-2xl"></i></div>
@@ -292,6 +333,7 @@
                         </div>
                     </div>
 
+                    <!-- Charts Area (1 Bar full width, 2 Pies below) -->
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
                         <h3 class="text-lg font-semibold text-gray-800 mb-4">แนวโน้มยอดขายรายวัน</h3>
                         <div class="relative h-72 w-full"><canvas id="singleSalesChart"></canvas></div>
@@ -317,6 +359,7 @@
                         </div>
                     </div>
 
+                    <!-- Single Month Payment Table -->
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                         <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex flex-col md:flex-row md:items-center justify-between gap-2">
                             <h3 class="text-lg font-semibold text-gray-800">สรุปรายละเอียดการชำระเงิน</h3>
@@ -331,11 +374,14 @@
                                         <th class="px-6 py-3 font-semibold text-right">สัดส่วน (%)</th>
                                     </tr>
                                 </thead>
-                                <tbody id="singlePaymentTableBody" class="text-sm text-gray-700 divide-y divide-gray-100"></tbody>
+                                <tbody id="singlePaymentTableBody" class="text-sm text-gray-700 divide-y divide-gray-100">
+                                    <!-- JS Populated -->
+                                </tbody>
                             </table>
                         </div>
                     </div>
 
+                    <!-- Day of Week Summary -->
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                         <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
                             <i class="fas fa-calendar-week text-orange-500"></i><h3 class="text-lg font-semibold text-gray-800">สรุปยอดขายแยกตามวันในสัปดาห์</h3>
@@ -345,6 +391,7 @@
                         </div>
                     </div>
 
+                    <!-- Detailed Data Table -->
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                         <div class="px-6 py-4 border-b border-gray-100 bg-gray-50"><h3 class="text-lg font-semibold text-gray-800">รายละเอียดรายวัน</h3></div>
                         <div class="overflow-x-auto">
@@ -513,11 +560,11 @@
             if (!textData.includes('วันที่') && !textData.includes('ชื่อสินค้า') && !textData.includes('ยอด')) {
                 try {
                     const tisText = new TextDecoder("windows-874").decode(buffer);
-                    if (tisText.includes('วันที่') || tisText.includes('ชื่อสินค้า') || tisText.includes('ยอด')) {
+                    if (tisText.includes('วันที่') || tisText.includes('ชื่อสินค้า') || tisText.includes('ยอด') || tisText.includes('รายการ')) {
                         textData = tisText;
                     } else {
                         const tis620Text = new TextDecoder("tis-620").decode(buffer);
-                        if (tis620Text.includes('วันที่') || tis620Text.includes('ชื่อสินค้า') || tis620Text.includes('ยอด')) {
+                        if (tis620Text.includes('วันที่') || tis620Text.includes('ชื่อสินค้า') || tis620Text.includes('ยอด') || tis620Text.includes('รายการ')) {
                             textData = tis620Text;
                         }
                     }
@@ -597,6 +644,7 @@
 
             try {
                 const fetchPromises = urlsToTry.map(filePath => 
+                    // แปลง URL ให้รองรับภาษาไทย
                     fetch(encodeURI(filePath)).then(async (res) => {
                         if (!res.ok) return null;
                         const contentType = res.headers.get('content-type') || '';
@@ -616,7 +664,7 @@
                         const rawJson = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: '' });
                         const sampleStr = rawJson.slice(0, 20).map(r => r ? r.join('').toLowerCase() : '').join(' ');
                         
-                        const isCategory = filePath.toLowerCase().includes('category') || filePath.includes('ยอดขายสินค้าตามวัน') || (sampleStr.includes('ชื่อสินค้า') && sampleStr.includes('จำนวนการขาย') && !sampleStr.includes('สถานะ'));
+                        const isCategory = filePath.toLowerCase().includes('category') || filePath.includes('ยอดขายสินค้าตามวัน') || (sampleStr.includes('ชื่อสินค้า') && (sampleStr.includes('จำนวน') || sampleStr.includes('หมวด')));
                         const isVoid = filePath.toLowerCase().includes('void') || filePath.includes('สถานะสั่ง') || filePath.includes('สถานะการสั่ง') || (sampleStr.includes('ชื่อสินค้า') && sampleStr.includes('สถานะ'));
 
                         if (isCategory) {
@@ -640,7 +688,7 @@
                         document.getElementById('emptyState').classList.add('hidden');
                         document.getElementById('tabsWrapper').classList.remove('hidden');
                         
-                        // กรองเฉพาะ Tab ที่ยอดขาย > 0 เท่านั้น
+                        // กรองเฉพาะ Tab ที่ยอดขายสุทธิมากกว่า 0
                         const validKeys = Object.keys(datasets).filter(k => {
                             const d = datasets[k];
                             return d.summary && (d.summary.totalNetSales > 0 || d.summary.totalBills > 0);
@@ -698,7 +746,7 @@
                         const rawJson = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: '' });
                         const sampleStr = rawJson.slice(0, 20).map(r => r ? r.join('').toLowerCase() : '').join(' ');
                         
-                        const isCategory = name.includes('category') || name.includes('ยอดขายสินค้าตามวัน') || (sampleStr.includes('ชื่อสินค้า') && sampleStr.includes('จำนวนการขาย') && !sampleStr.includes('สถานะ'));
+                        const isCategory = name.includes('category') || name.includes('ยอดขายสินค้าตามวัน') || (sampleStr.includes('ชื่อสินค้า') && (sampleStr.includes('จำนวน') || sampleStr.includes('หมวด')));
                         const isVoid = name.includes('void') || name.includes('สถานะสั่ง') || name.includes('สถานะการสั่ง') || (sampleStr.includes('ชื่อสินค้า') && sampleStr.includes('สถานะ'));
 
                         if (isCategory) {
@@ -722,6 +770,7 @@
                         document.getElementById('emptyState').classList.add('hidden');
                         document.getElementById('tabsWrapper').classList.remove('hidden');
                         
+                        // กรองเฉพาะ Tab ที่มียอดขาย > 0
                         const validKeys = Object.keys(datasets).filter(k => {
                             const d = datasets[k];
                             return d.summary && (d.summary.totalNetSales > 0 || d.summary.totalBills > 0);
@@ -762,7 +811,6 @@
             const dropZone = document.getElementById('dropZone');
             const emptyState = document.getElementById('emptyState');
             
-            // ป้องกันเบราว์เซอร์เปิดไฟล์เองเมื่อลากไฟล์มาวาง
             window.addEventListener('dragover', (e) => e.preventDefault());
             window.addEventListener('drop', (e) => e.preventDefault());
             
@@ -1003,12 +1051,10 @@
             const tabsContainer = document.getElementById('tabsContainer');
             tabsContainer.innerHTML = '';
             
-            // กรองเอาเฉพาะเดือนที่มีข้อมูลจริงๆ (ป้องกัน Tab เปล่า)
             const validKeys = Object.keys(datasets).filter(k => {
                 const d = datasets[k];
                 return d.summary && (d.summary.totalNetSales > 0 || d.summary.totalBills > 0);
             });
-            
             const tabKeys = validKeys.sort((a, b) => (datasets[a].sortDate || 0) - (datasets[b].sortDate || 0));
             
             if (tabKeys.length > 1) {
@@ -1448,8 +1494,9 @@
           const process2DArray = (rows) => {
             let headerIndex = -1;
             for (let i = 0; i < Math.min(20, rows.length); i++) {
+              // แก้ไข: อนุโลมการค้นหาคอลัมน์ให้อ่านง่ายขึ้น รองรับไฟล์ที่ไม่มีวันที่ด้วย
               const rowStr = (rows[i] || []).map(c => c !== undefined && c !== null ? c.toString().replace(/\s/g, '') : '').join('').toLowerCase();
-              if (rowStr.includes('วันที่') && (rowStr.includes('ชื่อสินค้า') || rowStr.includes('รายการ'))) {
+              if (rowStr.includes('ชื่อสินค้า') || rowStr.includes('itemname') || rowStr.includes('product')) {
                 headerIndex = i;
                 break;
               }
@@ -1485,16 +1532,23 @@
             arrayOfDataArrays.forEach(data => {
                 monthCount++;
                 data.forEach(row => {
-                  let rawDate = row['วันที่'];
-                  const itemName = (row['ชื่อสินค้า'] || '').toString().trim();
-                  let category = (row['หมวดสินค้า'] || '').toString().trim() || 'ไม่มีหมวดหมู่';
+                  let rawDate = row['วันที่'] || row['Date'] || row['date'];
+                  const itemName = (row['ชื่อสินค้า'] || row['Item Name'] || row['Menu Name'] || '').toString().trim();
+                  let category = (row['หมวดสินค้า'] || row['หมวดหมู่'] || row['Category'] || '').toString().trim() || 'ไม่มีหมวดหมู่';
                   
-                  const qtyStr = (row['จำนวนการขาย'] || '0').toString().replace(/,/g, '');
-                  const netStr = (row['ราคาสุทธิ'] || '0').toString().replace(/,/g, '');
+                  // ดักจับชื่อคอลัมน์หลายรูปแบบ
+                  const qtyStr = (row['จำนวนการขาย'] || row['จำนวน(ขาย)'] || row['จำนวน'] || row['Qty'] || row['Quantity'] || '0').toString().replace(/,/g, '');
+                  const netStr = (row['ราคาสุทธิ'] || row['ยอดสุทธิ'] || row['Net'] || row['Net Sales'] || '0').toString().replace(/,/g, '');
+                  
                   const qty = parseFloat(qtyStr || 0);
                   const net = parseFloat(netStr || 0);
 
-                  if (rawDate === undefined || rawDate === '' || !itemName || itemName.includes('เทสระบบ')) return;
+                  if (!itemName || itemName.includes('เทสระบบ')) return;
+                  
+                  // ถ้าไฟล์ไม่มีคอลัมน์วันที่ (เช่นเป็นรายงานสรุปรายเดือน) ให้สมมติว่าเป็นวันที่ 1 เพื่อให้ลง W1
+                  if (rawDate === undefined || rawDate === '') {
+                      rawDate = new Date().toISOString().split('T')[0];
+                  }
 
                   let day, month, year;
 
