@@ -580,7 +580,7 @@
 
             const months = ['1','2','3','4','5','6','7','8','9','10','11','12','01','02','03','04','05','06','07','08','09'];
             const types = ['sales','payment','category','void', 'Category', 'Void', 'Sales', 'Payment'];
-            const exts = ['.csv', '.xlsx'];
+            const exts = ['.csv', '.xlsx', '.xls']; // แก้ไข: เพิ่ม .xls เข้าไปเพื่อรองรับไฟล์จาก FoodStory
             const urlsToTry = [];
             
             // สร้างลิงก์ที่จะไปหา
@@ -588,25 +588,28 @@
                 months.forEach(month => {
                     exts.forEach(ext => {
                         urlsToTry.push(`./data/${type}-${month}${ext}`);
+                        urlsToTry.push(`./data/${type}_${month}${ext}`); // แก้ไข: เพิ่มกรณีชื่อไฟล์ใช้ _ (underscore)
                     });
                 });
             });
 
-            urlsToTry.push('./data/ยอดขายสินค้าตามวัน.csv', './data/ยอดขายสินค้าตามวัน.xlsx');
-            urlsToTry.push('./data/รายงานสถานะการสั่งสินค้า.csv', './data/รายงานสถานะการสั่งสินค้า.xlsx');
+            urlsToTry.push('./data/ยอดขายสินค้าตามวัน.csv', './data/ยอดขายสินค้าตามวัน.xlsx', './data/ยอดขายสินค้าตามวัน.xls');
+            urlsToTry.push('./data/รายงานสถานะการสั่งสินค้า.csv', './data/รายงานสถานะการสั่งสินค้า.xlsx', './data/รายงานสถานะการสั่งสินค้า.xls');
 
             let loadedMendori = 0, loadedCategory = 0, loadedVoid = 0;
 
             try {
-                const fetchPromises = urlsToTry.map(filePath => 
-                    fetch(encodeURI(filePath)).then(async (res) => {
+                const fetchPromises = urlsToTry.map(filePath => {
+                    // แก้ไข: เพิ่ม Cache Buster เพื่อป้องกัน Vercel/GitHub จำค่าไฟล์เก่า (ทะลุแคช)
+                    const cacheBuster = `?t=${new Date().getTime()}`;
+                    return fetch(encodeURI(filePath) + cacheBuster, { cache: 'no-store' }).then(async (res) => {
                         if (!res.ok) return null;
                         const contentType = res.headers.get('content-type') || '';
                         if (contentType.includes('text/html')) return null;
                         const buffer = await res.arrayBuffer();
                         return { filePath, buffer };
-                    }).catch(() => null)
-                );
+                    }).catch(() => null);
+                });
 
                 const results = await Promise.all(fetchPromises);
                 const validResults = results.filter(r => r !== null);
