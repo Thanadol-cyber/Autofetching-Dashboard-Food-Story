@@ -580,7 +580,7 @@
 
             const months = ['1','2','3','4','5','6','7','8','9','10','11','12','01','02','03','04','05','06','07','08','09'];
             const types = ['sales','payment','category','void', 'Category', 'Void', 'Sales', 'Payment'];
-            const exts = ['.csv', '.xlsx', '.xls']; // แก้ไข: เพิ่ม .xls เข้าไปเพื่อรองรับไฟล์จาก FoodStory
+            const exts = ['.csv', '.xlsx', '.xls']; // แก้ไข: เพิ่ม .xls 
             const urlsToTry = [];
             
             // สร้างลิงก์ที่จะไปหา
@@ -588,7 +588,7 @@
                 months.forEach(month => {
                     exts.forEach(ext => {
                         urlsToTry.push(`./data/${type}-${month}${ext}`);
-                        urlsToTry.push(`./data/${type}_${month}${ext}`); // แก้ไข: เพิ่มกรณีชื่อไฟล์ใช้ _ (underscore)
+                        urlsToTry.push(`./data/${type}_${month}${ext}`); // แก้ไข: เพิ่มรองรับ _ (underscore)
                     });
                 });
             });
@@ -600,8 +600,7 @@
 
             try {
                 const fetchPromises = urlsToTry.map(filePath => {
-                    // แก้ไข: เพิ่ม Cache Buster เพื่อป้องกัน Vercel/GitHub จำค่าไฟล์เก่า (ทะลุแคช)
-                    const cacheBuster = `?t=${new Date().getTime()}`;
+                    const cacheBuster = `?t=${new Date().getTime()}`; // แก้ไข: ทะลุ Cache ป้องกัน Vercel จำค่าเก่า
                     return fetch(encodeURI(filePath) + cacheBuster, { cache: 'no-store' }).then(async (res) => {
                         if (!res.ok) return null;
                         const contentType = res.headers.get('content-type') || '';
@@ -719,17 +718,22 @@
                         if (isCategory) {
                             window.processCategoryData(rawJson); loadedCategory++;
                         } else if (isVoid) {
-                            if (typeof window.processVoidData === 'function') { window.processVoidData(rawJson); loadedVoid++; }
+                            if(typeof window.processVoidData === 'function') { window.processVoidData(rawJson); loadedVoid++; }
                         } else if (sampleStr.includes('ประเภทการชำระเงิน')) {
-                            const parsed = parsePaymentData(rawJson, file.name);
+                            const parsed = parsePaymentData(rawJson, filePath);
                             if(parsed) { mergeDataset(parsed, 'payment'); loadedMendori++; }
                         } else if (sampleStr.includes('วันที่') && (sampleStr.includes('ยอด') || sampleStr.includes('บิล') || sampleStr.includes('สุทธิ'))) {
                             const parsed = parseDailyData(rawJson);
                             if(parsed) { mergeDataset(parsed, 'daily'); loadedMendori++; }
                         }
                     } catch(e) {
-                        console.error("ข้ามไฟล์:", e);
+                        console.log(`ข้ามไฟล์ (ไม่ใช่ตารางข้อมูล): ${fileData.filePath}`);
                     }
+                }
+
+                // แก้ไข: สั่ง Trigger ให้ React อัปเดตหลังจากโหลดไฟล์เสร็จ
+                if (loadedCategory > 0) {
+                    window.dispatchEvent(new CustomEvent('updateCategoryReact'));
                 }
 
                 if (loadedMendori > 0 || loadedCategory > 0 || loadedVoid > 0) {
@@ -1410,36 +1414,35 @@
             };
             defaultLogo.src = './Logo.jpg';
             
-            // ปรับปรุงระบบ Sync ระหว่าง Vanilla JS กับ React ให้ปลอดภัย 100%
-            const syncCategoryData = () => {
-                if (window.allCategoryRows && window.allCategoryRows.length > 0) {
-                    const allParsed = [];
-                    window.allCategoryRows.forEach(rawRows => {
-                        const parsed = process2DArray(rawRows);
-                        if (parsed && parsed.length > 0) allParsed.push(parsed);
-                    });
-                    
-                    if (allParsed.length > 0) {
-                        generatePivotData(allParsed);
-                        // ซ่อนกล่อง Drag & Drop ของแท็บ Overview หลักเผื่อไว้ด้วย
-                        const emptySt = document.getElementById('emptyState');
-                        if(emptySt) emptySt.classList.add('hidden');
-                    }
+            // แก้ไข: สร้างฟังก์ชัน Sync โค้ดที่ทนทานต่ออักขระซ่อนเร้นและผูก Event กลับเข้าไป
+            const syncCategoryData = (dataArr = window.allCategoryRows) => {
+                if (!dataArr || dataArr.length === 0) return;
+                const allParsed = [];
+                dataArr.forEach(rawRows => {
+                    const parsed = process2DArray(rawRows);
+                    if (parsed && parsed.length > 0) allParsed.push(parsed);
+                });
+                if (allParsed.length > 0) {
+                    generatePivotData(allParsed);
+                    const emptySt = document.getElementById('emptyState');
+                    if(emptySt) emptySt.classList.add('hidden');
                 }
             };
 
-            // กำหนดฟังก์ชันให้ถูกเรียกใช้จากภายนอก
             window.triggerCategoryRender = syncCategoryData;
 
-            // ตรวจสอบทันทีที่ React โหลดขึ้นมา (กรณีที่ข้อมูลถูกดึงเสร็จก่อน React)
-            syncCategoryData();
+            // ตรวจสอบว่าถ้ามีคิวรอไว้ก่อนหน้านี้ ให้ Render เลย
+            if (window.allCategoryRows && window.allCategoryRows.length > 0) {
+                syncCategoryData(window.allCategoryRows);
+            }
             
-            // ดักฟังสัญญาณ Event เพิ่มเติม (กรณีที่ข้อมูลถูกดึงทีหลัง)
-            window.addEventListener('updateCategoryReact', syncCategoryData);
+            // ผูก Event Listener เพื่อดักจับข้อมูลที่โหลดเสร็จทีหลัง
+            const handleUpdate = () => syncCategoryData(window.allCategoryRows);
+            window.addEventListener('updateCategoryReact', handleUpdate);
             
             return () => {
                 delete window.triggerCategoryRender;
-                window.removeEventListener('updateCategoryReact', syncCategoryData);
+                window.removeEventListener('updateCategoryReact', handleUpdate);
             }
           }, []);
 
@@ -1472,7 +1475,7 @@
           const process2DArray = (rows) => {
             let headerIndex = -1;
             for (let i = 0; i < Math.min(20, rows.length); i++) {
-              // เพิ่มการตัด \uFEFF และ \u200B ป้องกันอักขระซ่อนเร้นจากการดึงไฟล์ข้าม Server
+              // แก้ไข: ตัด \uFEFF และ \u200B ป้องกันไฟล์ CSV จาก Vercel มีอักขระล่องหน
               const rowStr = (rows[i] || []).map(c => c !== undefined && c !== null ? c.toString().replace(/[\s\uFEFF\u200B]/g, '') : '').join('').toLowerCase();
               if (rowStr.includes('วันที่') && (rowStr.includes('ชื่อสินค้า') || rowStr.includes('รายการ'))) {
                 headerIndex = i;
