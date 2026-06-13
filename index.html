@@ -162,7 +162,7 @@
                     </button>
                 </div>
 
-                <!-- Empty State -->
+                <!-- EMPTY STATE -->
                 <div id="emptyState" class="print:hidden flex flex-col items-center justify-center py-20 text-center bg-white rounded-2xl border-2 border-dashed border-gray-300 shadow-sm transition-all hover:border-orange-400 hover:bg-orange-50/50 relative">
                     <i class="fas fa-magic text-6xl text-gray-200 mb-4 pointer-events-none"></i>
                     <h2 class="text-xl font-semibold text-gray-700 mb-2 pointer-events-none">รอโหลดข้อมูลอัตโนมัติ หรือ ลากไฟล์มาวางที่นี่</h2>
@@ -183,7 +183,7 @@
                     </div>
                 </div>
 
-                <!-- Tabs Navigation -->
+                <!-- TABS CONTENT -->
                 <div id="tabsWrapper" class="hidden mb-6 relative print:hidden">
                     <!-- ปุ่มเลื่อนซ้าย -->
                     <div class="absolute left-0 top-0 bottom-2 w-12 bg-gradient-to-r from-[#f3f4f6] to-transparent flex items-center justify-start z-10 pointer-events-none">
@@ -204,10 +204,7 @@
                     </div>
                 </div>
 
-                <!-- ================= COMPARE CONTENT (Overview) ================= -->
                 <div id="compareContent" class="hidden space-y-6">
-                    
-                    <!-- Header -->
                     <div class="bg-gradient-to-r from-gray-800 to-gray-700 p-6 rounded-2xl shadow-sm text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
                             <h2 class="text-2xl font-bold mb-1">เปรียบเทียบภาพรวม (Overview)</h2>
@@ -219,7 +216,6 @@
                         </div>
                     </div>
 
-                    <!-- 5 Summary Cards -->
                     <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
                         <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center gap-2">
                             <div class="bg-orange-100 p-3 rounded-full text-orange-600"><i class="fas fa-coins text-xl"></i></div>
@@ -243,13 +239,11 @@
                         </div>
                     </div>
 
-                    <!-- Compare Charts Area -->
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 lg:col-span-2">
                             <h3 class="text-lg font-semibold text-gray-800 mb-4">เปรียบเทียบยอดขาย และ จำนวนบิล (รายเดือน)</h3>
                             <div class="relative h-80 w-full"><canvas id="compareSalesChart"></canvas></div>
                         </div>
-                        
                         <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative">
                             <h3 class="text-lg font-semibold text-gray-800 mb-4">สัดส่วนการชำระเงิน (รวมทุกเดือน)</h3>
                             <div class="relative h-80 w-full flex justify-center items-center">
@@ -262,7 +256,6 @@
                         </div>
                     </div>
 
-                    <!-- Compare Table (Sales) -->
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                         <div class="px-6 py-4 border-b border-gray-100 bg-gray-50"><h3 class="text-lg font-semibold text-gray-800">สรุปรายละเอียดรายเดือน</h3></div>
                         <div class="overflow-x-auto">
@@ -281,7 +274,6 @@
                         </div>
                     </div>
 
-                    <!-- Compare Payment Table (Month by Month) -->
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                         <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex flex-col md:flex-row md:items-center justify-between gap-2">
                             <h3 class="text-lg font-semibold text-gray-800">เปรียบเทียบการชำระเงินรายเดือน</h3>
@@ -289,19 +281,14 @@
                         </div>
                         <div class="overflow-x-auto">
                             <table class="w-full text-left border-collapse">
-                                <thead id="comparePaymentTableHead" class="bg-gray-100 text-gray-600 text-sm border-b">
-                                    <!-- JS Populated -->
-                                </thead>
+                                <thead id="comparePaymentTableHead" class="bg-gray-100 text-gray-600 text-sm border-b"></thead>
                                 <tbody id="comparePaymentTableBody" class="text-sm text-gray-700 divide-y divide-gray-100"></tbody>
                             </table>
                         </div>
                     </div>
                 </div>
 
-                <!-- ================= SINGLE MONTH CONTENT ================= -->
                 <div id="singleMonthContent" class="hidden space-y-6 print-page-break">
-                    
-                    <!-- Target Setting -->
                     <div class="print:hidden bg-white p-4 rounded-2xl shadow-sm flex flex-col sm:flex-row items-center gap-4 justify-between border-l-4 border-blue-500">
                         <div class="flex items-center gap-2">
                             <i class="fas fa-bullseye text-blue-500 text-xl"></i>
@@ -313,7 +300,6 @@
                         </div>
                     </div>
 
-                    <!-- 4 Summary Cards -->
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
                             <div class="bg-orange-100 p-3 rounded-full text-orange-600"><i class="fas fa-coins text-2xl"></i></div>
@@ -333,7 +319,6 @@
                         </div>
                     </div>
 
-                    <!-- Charts Area (1 Bar full width, 2 Pies below) -->
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
                         <h3 class="text-lg font-semibold text-gray-800 mb-4">แนวโน้มยอดขายรายวัน</h3>
                         <div class="relative h-72 w-full"><canvas id="singleSalesChart"></canvas></div>
@@ -359,7 +344,6 @@
                         </div>
                     </div>
 
-                    <!-- Single Month Payment Table -->
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                         <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex flex-col md:flex-row md:items-center justify-between gap-2">
                             <h3 class="text-lg font-semibold text-gray-800">สรุปรายละเอียดการชำระเงิน</h3>
@@ -374,14 +358,11 @@
                                         <th class="px-6 py-3 font-semibold text-right">สัดส่วน (%)</th>
                                     </tr>
                                 </thead>
-                                <tbody id="singlePaymentTableBody" class="text-sm text-gray-700 divide-y divide-gray-100">
-                                    <!-- JS Populated -->
-                                </tbody>
+                                <tbody id="singlePaymentTableBody" class="text-sm text-gray-700 divide-y divide-gray-100"></tbody>
                             </table>
                         </div>
                     </div>
 
-                    <!-- Day of Week Summary -->
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                         <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
                             <i class="fas fa-calendar-week text-orange-500"></i><h3 class="text-lg font-semibold text-gray-800">สรุปยอดขายแยกตามวันในสัปดาห์</h3>
@@ -391,7 +372,6 @@
                         </div>
                     </div>
 
-                    <!-- Detailed Data Table -->
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                         <div class="px-6 py-4 border-b border-gray-100 bg-gray-50"><h3 class="text-lg font-semibold text-gray-800">รายละเอียดรายวัน</h3></div>
                         <div class="overflow-x-auto">
@@ -542,35 +522,36 @@
         // ฟังก์ชันอ่านไฟล์ Universal (ถอดรหัสภาษาไทย TIS-620 / ตรวจจับไฟล์ขยะ)
         // =======================================================
         function readWorkbookUniversal(buffer) {
-            const utf8Text = new TextDecoder("utf-8").decode(buffer).trim();
-            if (utf8Text.toLowerCase().startsWith('<!doctype') || utf8Text.toLowerCase().startsWith('<html')) {
+            const arr = new Uint8Array(buffer);
+            
+            // เช็คว่าอ่านได้และเป็น HTML หรือไม่ (กรณี Vercel ปล่อย 404 ออกมาเป็น HTML)
+            const utf8Text = new TextDecoder("utf-8").decode(arr.slice(0, 500)).trim().toLowerCase();
+            if (utf8Text.startsWith('<!doctype') || utf8Text.startsWith('<html')) {
                 throw new Error("HTML File");
             }
 
-            try {
-                const arr = new Uint8Array(buffer);
-                const isZip = arr[0] === 0x50 && arr[1] === 0x4B; 
-                const isXls = arr[0] === 0xD0 && arr[1] === 0xCF; 
-                if (isZip || isXls) {
-                    return XLSX.read(buffer, { type: 'array' });
-                }
-            } catch(e) {}
+            // ถ้าเป็น Zip/XLSX
+            const isZip = arr[0] === 0x50 && arr[1] === 0x4B; 
+            const isXls = arr[0] === 0xD0 && arr[1] === 0xCF; 
+            if (isZip || isXls) {
+                try { return XLSX.read(buffer, { type: 'array' }); } catch(e) {}
+            }
 
+            // ถอดรหัส Text อัจฉริยะ 
             let textData = new TextDecoder("utf-8").decode(buffer);
-            if (!textData.includes('วันที่') && !textData.includes('ชื่อสินค้า') && !textData.includes('ยอด')) {
+            
+            // ใช้ Regex ตรวจจับอักษรภาษาไทย ถ้า UTF-8 อ่านไทยไม่ออก ให้สลับไปใช้ TIS-620 (Windows-874)
+            const hasThaiUTF8 = /[\u0E00-\u0E7F]/.test(textData);
+            if (!hasThaiUTF8) {
                 try {
                     const tisText = new TextDecoder("windows-874").decode(buffer);
-                    if (tisText.includes('วันที่') || tisText.includes('ชื่อสินค้า') || tisText.includes('ยอด') || tisText.includes('รายการ')) {
+                    if (/[\u0E00-\u0E7F]/.test(tisText)) {
                         textData = tisText;
-                    } else {
-                        const tis620Text = new TextDecoder("tis-620").decode(buffer);
-                        if (tis620Text.includes('วันที่') || tis620Text.includes('ชื่อสินค้า') || tis620Text.includes('ยอด') || tis620Text.includes('รายการ')) {
-                            textData = tis620Text;
-                        }
                     }
                 } catch(e) {}
             }
             
+            // ลบ BOM
             textData = textData.replace(/^\uFEFF/, '');
             return XLSX.read(textData, { type: 'string', raw: false });
         }
@@ -691,7 +672,7 @@
                         // กรองเฉพาะ Tab ที่ยอดขายสุทธิมากกว่า 0
                         const validKeys = Object.keys(datasets).filter(k => {
                             const d = datasets[k];
-                            return d.summary && (d.summary.totalNetSales > 0 || d.summary.totalBills > 0);
+                            return d.dailyData && d.dailyData.length > 0 && d.summary && d.summary.totalNetSales > 0;
                         });
                         
                         if(validKeys.length > 0) {
@@ -773,7 +754,7 @@
                         // กรองเฉพาะ Tab ที่มียอดขาย > 0
                         const validKeys = Object.keys(datasets).filter(k => {
                             const d = datasets[k];
-                            return d.summary && (d.summary.totalNetSales > 0 || d.summary.totalBills > 0);
+                            return d.dailyData && d.dailyData.length > 0 && d.summary && d.summary.totalNetSales > 0;
                         });
                         
                         if(validKeys.length > 0) {
@@ -939,15 +920,16 @@
             for (let i = 0; i < Math.min(20, rawData.length); i++) {
                 const row = rawData[i];
                 if (!row || row.filter(c => c !== undefined && c !== null && c !== '').length < 3) continue;
-                const rowStr = row.join('').toLowerCase();
-                if (rowStr.includes('ประเภทการชำระเงิน')) {
+                
+                const normRow = row.map(cell => cell !== undefined && cell !== null ? cell.toString().toLowerCase().replace(/\s+/g, '').replace(/[\r\n\uFEFF]/g, '') : '');
+                
+                if (normRow.some(h => h.includes('ประเภทการชำระเงิน') || h.includes('payment'))) {
                     headerIdx = i;
-                    row.forEach((cell, idx) => {
-                        if (!cell) return;
-                        const header = cell.toString().toLowerCase().replace(/\s+/g, '');
-                        if (header.includes('ประเภทการชำระเงิน')) colMap.type = idx;
-                        else if (header.includes('รวมสุทธิ') || header.includes('ยอดสุทธิ') || header === 'net') { colMap.net = idx; }
-                        else if (header.includes('ยอดก่อนภาษี') || header.includes('ยอดรวม+ค่าบริการ') || header.includes('ยอดรวม') || header.includes('จำนวนเงิน')) {
+                    normRow.forEach((header, idx) => {
+                        if (!header) return;
+                        if (header.includes('ประเภทการชำระเงิน') || header.includes('payment')) colMap.type = idx;
+                        else if (header.includes('รวมสุทธิ') || header.includes('ยอดสุทธิ') || header === 'net') colMap.net = idx;
+                        else if (header.includes('ยอดก่อนภาษี') || header.includes('ยอดรวม') || header.includes('จำนวนเงิน')) {
                             if (colMap.pretax === undefined && !header.includes('รวมสุทธิ')) colMap.pretax = idx;
                         }
                     });
@@ -981,17 +963,20 @@
             for (let i = 0; i < Math.min(20, rawData.length); i++) {
                 const row = rawData[i];
                 if (!row || row.filter(c => c !== undefined && c !== null && c !== '').length < 3) continue; 
-                const rowStr = row.join('').toLowerCase();
-                if (rowStr.includes('วัน') && (rowStr.includes('ยอด') || rowStr.includes('บิล') || rowStr.includes('สุทธิ'))) {
+                
+                const normRow = row.map(cell => cell !== undefined && cell !== null ? cell.toString().toLowerCase().replace(/\s+/g, '').replace(/[\r\n\uFEFF]/g, '') : '');
+                
+                if (normRow.some(h => (h.includes('วันที่') || h.includes('date')) && (h.includes('ยอด') || h.includes('บิล') || h.includes('net') || h.includes('สุทธิ')))) {
                     headerIdx = i;
-                    row.forEach((cell, idx) => {
-                        if (!cell) return;
-                        const header = cell.toString().toLowerCase().replace(/\s+/g, '');
-                        if (header.includes('วันที่') || header.includes('date')) { colMap.date = idx; } 
-                        else if (header.includes('สุทธิ') || header === 'net') { colMap.net = idx; } 
-                        else if (header === 'ส่วนลดสินค้า' || header === 'ส่วนลดบิล' || header === 'ส่วนลด') { discountCols.push(idx); } 
-                        else if (header.includes('ยอดก่อนลด') || header === 'ยอดรวม' || header === 'total') { if (colMap.total === undefined) colMap.total = idx; } 
-                        else if (header.includes('จำนวนบิล') || header === 'บิล' || header.includes('ใบเสร็จ') || header.includes('bills')) { colMap.bills = idx; }
+                    normRow.forEach((header, idx) => {
+                        if (!header) return;
+                        if (header.includes('วันที่') || header === 'date') colMap.date = idx;
+                        else if (header.includes('สุทธิ') || header === 'net') colMap.net = idx;
+                        else if (header.includes('ส่วนลด')) discountCols.push(idx);
+                        else if (header.includes('ยอดก่อนลด') || header === 'ยอดรวม' || header === 'total') {
+                            if (colMap.total === undefined) colMap.total = idx;
+                        }
+                        else if (header.includes('จำนวนบิล') || header.includes('ใบเสร็จ') || header.includes('bills')) colMap.bills = idx;
                     });
                     break;
                 }
@@ -1051,10 +1036,12 @@
             const tabsContainer = document.getElementById('tabsContainer');
             tabsContainer.innerHTML = '';
             
+            // กรองเอาเฉพาะเดือนที่มีข้อมูลจริงๆ (ป้องกัน Tab เปล่า)
             const validKeys = Object.keys(datasets).filter(k => {
                 const d = datasets[k];
-                return d.summary && (d.summary.totalNetSales > 0 || d.summary.totalBills > 0);
+                return d.dailyData && d.dailyData.length > 0 && d.summary && (d.summary.totalNetSales > 0 || d.summary.totalBills > 0);
             });
+            
             const tabKeys = validKeys.sort((a, b) => (datasets[a].sortDate || 0) - (datasets[b].sortDate || 0));
             
             if (tabKeys.length > 1) {
@@ -1112,7 +1099,7 @@
             
             const validKeys = Object.keys(datasets).filter(k => {
                 const d = datasets[k];
-                return d.summary && (d.summary.totalNetSales > 0 || d.summary.totalBills > 0);
+                return d.dailyData && d.dailyData.length > 0 && d.summary && (d.summary.totalNetSales > 0 || d.summary.totalBills > 0);
             });
             const sortedKeys = validKeys.sort((a, b) => (datasets[a].sortDate || 0) - (datasets[b].sortDate || 0));
             const totalMonths = sortedKeys.length;
@@ -1494,22 +1481,33 @@
           const process2DArray = (rows) => {
             let headerIndex = -1;
             for (let i = 0; i < Math.min(20, rows.length); i++) {
-              // แก้ไข: อนุโลมการค้นหาคอลัมน์ให้อ่านง่ายขึ้น รองรับไฟล์ที่ไม่มีวันที่ด้วย
+              // แก้ไข: normalize เพื่อให้รองรับ header ที่มีเว้นวรรค
               const rowStr = (rows[i] || []).map(c => c !== undefined && c !== null ? c.toString().replace(/\s/g, '') : '').join('').toLowerCase();
-              if (rowStr.includes('ชื่อสินค้า') || rowStr.includes('itemname') || rowStr.includes('product')) {
+              if (rowStr.includes('ชื่อสินค้า') || rowStr.includes('itemname') || rowStr.includes('product') || rowStr.includes('รายการ')) {
                 headerIndex = i;
                 break;
               }
             }
             if (headerIndex === -1) return null;
-            const headers = rows[headerIndex].map(h => (h || '').toString().trim());
+            
+            // ใช้ Normalization เพื่อป้องกันปัญหาชื่อคอลัมน์ซ่อนช่องว่างหรืออักขระพิเศษ
+            const rawHeaders = rows[headerIndex];
+            const headers = rawHeaders.map(h => (h || '').toString().trim().replace(/[\r\n\uFEFF]/g, ''));
+            
             const data = [];
             for (let i = headerIndex + 1; i < rows.length; i++) {
               const row = rows[i];
               if (!row || row.length === 0 || !row.some(cell => cell !== undefined && cell !== null && cell !== '')) continue;
               let rowObj = {};
               headers.forEach((header, index) => {
-                rowObj[header] = row[index] !== undefined ? row[index] : '';
+                const val = row[index] !== undefined ? row[index] : '';
+                rowObj[header] = val;
+                
+                // แอบเพิ่ม Key ที่ถูกคลีนค่าแล้วให้ค้นหาง่ายขึ้น
+                if (header) {
+                    const normKey = header.toString().toLowerCase().replace(/\s+/g, '').replace(/[\(\)\[\]]/g, '');
+                    rowObj[normKey] = val;
+                }
               });
               data.push(rowObj);
             }
@@ -1532,27 +1530,26 @@
             arrayOfDataArrays.forEach(data => {
                 monthCount++;
                 data.forEach(row => {
-                  let rawDate = row['วันที่'] || row['Date'] || row['date'];
-                  const itemName = (row['ชื่อสินค้า'] || row['Item Name'] || row['Menu Name'] || '').toString().trim();
-                  let category = (row['หมวดสินค้า'] || row['หมวดหมู่'] || row['Category'] || '').toString().trim() || 'ไม่มีหมวดหมู่';
+                  // ใช้ Key ที่ normalize แล้วช่วยหา เพื่อความชัวร์ 100%
+                  let rawDate = row['วันที่'] || row['date'] || row['วันที่ทำรายการ'];
+                  const itemName = (row['ชื่อสินค้า'] || row['itemname'] || row['menuname'] || row['รายการ'] || row['ชื่อรายการ'] || '').toString().trim();
+                  let category = (row['หมวดสินค้า'] || row['หมวดหมู่'] || row['category'] || row['กลุ่มสินค้า'] || row['หมวด'] || '').toString().trim() || 'ไม่มีหมวดหมู่';
                   
-                  // ดักจับชื่อคอลัมน์หลายรูปแบบ
-                  const qtyStr = (row['จำนวนการขาย'] || row['จำนวน(ขาย)'] || row['จำนวน'] || row['Qty'] || row['Quantity'] || '0').toString().replace(/,/g, '');
-                  const netStr = (row['ราคาสุทธิ'] || row['ยอดสุทธิ'] || row['Net'] || row['Net Sales'] || '0').toString().replace(/,/g, '');
+                  const qtyStr = (row['จำนวนการขาย'] || row['จำนวนขาย'] || row['จำนวน'] || row['qty'] || row['quantity'] || '0').toString().replace(/,/g, '');
+                  const netStr = (row['ราคาสุทธิ'] || row['ยอดสุทธิ'] || row['รวมสุทธิ'] || row['net'] || row['netsales'] || row['ราคารวม'] || '0').toString().replace(/,/g, '');
                   
                   const qty = parseFloat(qtyStr || 0);
                   const net = parseFloat(netStr || 0);
 
                   if (!itemName || itemName.includes('เทสระบบ')) return;
                   
-                  // ถ้าไฟล์ไม่มีคอลัมน์วันที่ (เช่นเป็นรายงานสรุปรายเดือน) ให้สมมติว่าเป็นวันที่ 1 เพื่อให้ลง W1
+                  // ถ้าไฟล์ไม่มีคอลัมน์วันที่ (เป็นรายงานรวมเดือน)
                   if (rawDate === undefined || rawDate === '') {
                       rawDate = new Date().toISOString().split('T')[0];
                   }
 
                   let day, month, year;
 
-                  // ถอดรหัสวันที่แบบ Excel Serial
                   if (typeof rawDate === 'number') {
                       let d = new Date(Math.round((rawDate - 25569) * 86400 * 1000));
                       day = d.getDate(); month = d.getMonth() + 1; year = d.getFullYear();
@@ -2228,24 +2225,25 @@
     <script>
         window.processVoidData = function(rows) {
             let headerRowIndex = -1;
+            let normHeaders = [];
             for (let i = 0; i < Math.min(10, rows.length); i++) {
                 const rowStr = (rows[i] || []).map(c => c !== undefined && c !== null ? c.toString().replace(/\s/g, '') : '').join('').toLowerCase();
                 if (rowStr.includes('ชื่อสินค้า') && rowStr.includes('สถานะ')) {
                     headerRowIndex = i;
+                    normHeaders = (rows[i] || []).map(c => c !== undefined && c !== null ? c.toString().toLowerCase().replace(/\s+/g, '').replace(/[\r\n\uFEFF]/g, '') : '');
                     break;
                 }
             }
 
             if (headerRowIndex === -1) return;
             
-            const headers = rows[headerRowIndex];
-            const colProduct = headers.findIndex(h => h && h.toString().trim() === 'ชื่อสินค้า');
-            const colStatus = headers.findIndex(h => h && h.toString().trim() === 'สถานะ');
-            const colDate = headers.findIndex(h => h && h.toString().trim() === 'วันที่เปิดบิล');
-            const colPerson = headers.findIndex(h => h && h.toString().trim() === 'รับออเดอร์โดย');
-            const colCancelTime = headers.findIndex(h => h && h.toString().trim() === 'ช่วงเวลายกเลิก');
-            const colRemark = headers.findIndex(h => h && h.toString().trim() === 'หมายเหตุ');
-            const colPrice = headers.findIndex(h => h && h.toString().trim() === 'ราคารวม');
+            const colProduct = normHeaders.findIndex(h => h.includes('ชื่อสินค้า') || h === 'itemname');
+            const colStatus = normHeaders.findIndex(h => h.includes('สถานะ') || h === 'status');
+            const colDate = normHeaders.findIndex(h => h.includes('วันที่') || h === 'date');
+            const colPerson = normHeaders.findIndex(h => h.includes('รับออเดอร์') || h.includes('พนักงาน') || h === 'staff');
+            const colCancelTime = normHeaders.findIndex(h => h.includes('ยกเลิก') || h === 'canceltime');
+            const colRemark = normHeaders.findIndex(h => h.includes('หมายเหตุ') || h === 'remark');
+            const colPrice = normHeaders.findIndex(h => h.includes('ราคา') || h === 'price' || h.includes('ยอด'));
 
             for (let i = headerRowIndex + 1; i < rows.length; i++) {
                 const row = rows[i];
