@@ -513,17 +513,19 @@
 
             let textData = new TextDecoder("utf-8").decode(buffer);
             
-            // เพิ่มการกรองอักขระพิเศษและเพิ่มคำค้นหาให้ครอบคลุมไฟล์ Category มากขึ้น
+            // เพิ่มคำค้นหา "ชำระเงิน" และ "ประเภท" สำหรับตรวจจับไฟล์ Payment ที่เป็น TIS-620 (CSV รุ่นเก่า)
             const checkStr = textData.replace(/[\s\uFEFF]/g, '').toLowerCase();
+            const keywords = ['วันที่', 'ชื่อสินค้า', 'ยอด', 'รายการ', 'ชำระเงิน', 'ประเภท'];
+            const hasKeyword = (str) => keywords.some(k => str.includes(k));
             
-            if (!checkStr.includes('วันที่') && !checkStr.includes('ชื่อสินค้า') && !checkStr.includes('ยอด') && !checkStr.includes('รายการ')) {
+            if (!hasKeyword(checkStr)) {
                 try {
                     const tisText = new TextDecoder("windows-874").decode(buffer);
-                    if (tisText.includes('วันที่') || tisText.includes('ชื่อสินค้า') || tisText.includes('ยอด') || tisText.includes('รายการ')) {
+                    if (hasKeyword(tisText.replace(/[\s\uFEFF]/g, '').toLowerCase())) {
                         textData = tisText;
                     } else {
                         const tis620Text = new TextDecoder("tis-620").decode(buffer);
-                        if (tis620Text.includes('วันที่') || tis620Text.includes('ชื่อสินค้า') || tis620Text.includes('ยอด')) {
+                        if (hasKeyword(tis620Text.replace(/[\s\uFEFF]/g, '').toLowerCase())) {
                             textData = tis620Text;
                         }
                     }
@@ -636,7 +638,9 @@
                         }
                         
                         const rawJson = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: '' });
-                        const sampleStr = rawJson.slice(0, 20).map(r => r ? r.join('').toLowerCase() : '').join(' ');
+                        
+                        // ตัดช่องว่างทิ้งใน sampleStr ป้องกันการเว้นวรรคแปลกๆ ในไฟล์
+                        const sampleStr = rawJson.slice(0, 20).map(r => r ? r.join('').toLowerCase() : '').join(' ').replace(/\s/g, '');
                         
                         // ปรับปรุง Logic การตรวจจับเล็กน้อยให้แม่นยำขึ้น
                         const isVoid = filePath.toLowerCase().includes('void') || filePath.includes('สถานะสั่ง') || filePath.includes('สถานะการสั่ง') || (sampleStr.includes('ชื่อสินค้า') && sampleStr.includes('สถานะ'));
@@ -735,7 +739,9 @@
                         }
                         
                         const rawJson = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: '' });
-                        const sampleStr = rawJson.slice(0, 20).map(r => r ? r.join('').toLowerCase() : '').join(' ');
+                        
+                        // ตัดช่องว่างทิ้งใน sampleStr ป้องกันการเว้นวรรคแปลกๆ ในไฟล์
+                        const sampleStr = rawJson.slice(0, 20).map(r => r ? r.join('').toLowerCase() : '').join(' ').replace(/\s/g, '');
                         
                         const isVoid = name.includes('void') || name.includes('สถานะสั่ง') || name.includes('สถานะการสั่ง') || (sampleStr.includes('ชื่อสินค้า') && sampleStr.includes('สถานะ'));
                         const isCategory = name.includes('category') || name.includes('ยอดขายสินค้าตามวัน') || (sampleStr.includes('ชื่อสินค้า') && sampleStr.includes('จำนวนการขาย') && !isVoid);
@@ -912,10 +918,13 @@
                 if(lowerName.includes(engMonths[i]) || lowerName.includes(thMonthsFull[i])) { monthIdx = i; break; } 
             }
             
-            const numMatch = lowerName.match(/-(\d{1,2})\./);
-            if(numMatch && monthIdx === -1) {
-                let mNum = parseInt(numMatch[1]);
-                if(mNum >= 1 && mNum <= 12) monthIdx = mNum - 1;
+            // อัปเดต Regex ให้ฉลาดขึ้น จับตัวเลข 1-2 หลักหลัง -, _ หรือ เว้นวรรค ป้องกันการหลุด
+            if(monthIdx === -1) {
+                const numMatch = lowerName.match(/[-_\s](\d{1,2})(?:\.\w+|-|_|\s|\)|$)/);
+                if(numMatch) {
+                    let mNum = parseInt(numMatch[1]);
+                    if(mNum >= 1 && mNum <= 12) monthIdx = mNum - 1;
+                }
             }
 
             const yearMatch = filename.match(/(20\d{2}|25\d{2})/);
@@ -935,7 +944,10 @@
             for (let i = 0; i < Math.min(20, rawData.length); i++) {
                 const row = rawData[i];
                 if (!row || row.filter(c => c !== undefined && c !== null && c !== '').length < 3) continue;
-                const rowStr = row.join('').toLowerCase();
+                
+                // ลบช่องว่างทิ้งก่อนเช็ค เพื่อความแม่นยำ 100%
+                const rowStr = row.map(c => c !== undefined && c !== null ? c.toString().replace(/\s/g, '') : '').join('').toLowerCase();
+                
                 if (rowStr.includes('ประเภทการชำระเงิน')) {
                     headerIdx = i;
                     row.forEach((cell, idx) => {
