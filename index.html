@@ -117,7 +117,7 @@
                     </div>
                     <div>
                         <div class="flex flex-wrap sm:flex-nowrap items-center gap-3">
-                            <input type="text" value="Mendori Ramen" class="text-2xl font-bold text-gray-900 bg-transparent border-b-2 border-transparent hover:border-gray-300 focus:border-orange-500 focus:outline-none transition-colors w-full sm:w-[350px] md:w-[450px] p-0 m-0" title="คลิกเพื่อแก้ไขชื่อลูกค้า" placeholder="พิมพ์ชื่อลูกค้า/ร้านค้าที่นี่...">
+                            <input type="text" value="" class="text-2xl font-bold text-gray-900 bg-transparent border-b-2 border-transparent hover:border-gray-300 focus:border-orange-500 focus:outline-none transition-colors w-full sm:w-[350px] md:w-[450px] p-0 m-0" title="คลิกเพื่อแก้ไขชื่อลูกค้า" placeholder="พิมพ์ชื่อลูกค้า/ร้านค้าที่นี่...">
                             <button id="printBtn" onclick="window.print()" class="print:hidden hidden md:flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm px-3 py-1.5 rounded-lg border border-gray-300 transition-colors whitespace-nowrap shrink-0">
                                 <i class="fas fa-file-pdf text-red-500"></i> เซฟ PDF
                             </button>
@@ -511,17 +511,19 @@
 
             let textData = new TextDecoder("utf-8").decode(buffer);
             
-            // เพิ่มการกรองอักขระพิเศษและเพิ่มคำค้นหาให้ครอบคลุมไฟล์ Category มากขึ้น
+            // เพิ่มคำค้นหา "ชำระเงิน" และ "ประเภท" สำหรับตรวจจับไฟล์ Payment ที่เป็น TIS-620 (CSV รุ่นเก่า)
             const checkStr = textData.replace(/[\s\uFEFF]/g, '').toLowerCase();
+            const keywords = ['วันที่', 'ชื่อสินค้า', 'ยอด', 'รายการ', 'ชำระเงิน', 'ประเภท'];
+            const hasKeyword = (str) => keywords.some(k => str.includes(k));
             
-            if (!checkStr.includes('วันที่') && !checkStr.includes('ชื่อสินค้า') && !checkStr.includes('ยอด') && !checkStr.includes('รายการ')) {
+            if (!hasKeyword(checkStr)) {
                 try {
                     const tisText = new TextDecoder("windows-874").decode(buffer);
-                    if (tisText.includes('วันที่') || tisText.includes('ชื่อสินค้า') || tisText.includes('ยอด') || tisText.includes('รายการ')) {
+                    if (hasKeyword(tisText.replace(/[\s\uFEFF]/g, '').toLowerCase())) {
                         textData = tisText;
                     } else {
                         const tis620Text = new TextDecoder("tis-620").decode(buffer);
-                        if (tis620Text.includes('วันที่') || tis620Text.includes('ชื่อสินค้า') || tis620Text.includes('ยอด')) {
+                        if (hasKeyword(tis620Text.replace(/[\s\uFEFF]/g, '').toLowerCase())) {
                             textData = tis620Text;
                         }
                     }
@@ -529,7 +531,12 @@
             }
             
             textData = textData.replace(/^\uFEFF/, '');
-            return XLSX.read(textData, { type: 'string', raw: false });
+            
+            try {
+                return XLSX.read(textData, { type: 'string', raw: false });
+            } catch(e) {
+                return null; // ป้องกันระบบล่มถ้าไฟล์พังขั้นรุนแรง
+            }
         }
 
         window.allCategoryRows = [];
@@ -573,6 +580,45 @@
         }
 
         // ========================================================
+        // ฟังก์ชันประมวลผลจับคู่ Dataset เข้าด้วยกัน
+        // ========================================================
+        function normalizeDatasets() {
+            const keys = Object.keys(datasets);
+            
+            // หา Key ที่มีแต่ Payment (ไม่มี Daily)
+            const paymentOnlyKeys = keys.filter(k => 
+                datasets[k].paymentData && 
+                datasets[k].paymentData.length > 0 && 
+                (!datasets[k].summary || datasets[k].summary.totalNetSales === 0)
+            );
+            
+            // หา Key ที่มี Daily Data (เป็นหลัก)
+            const dailyKeys = keys.filter(k => 
+                datasets[k].summary && datasets[k].summary.totalNetSales > 0
+            );
+
+            paymentOnlyKeys.forEach(pKey => {
+                const pMonth = pKey.split(' ')[0]; // ดึงเฉพาะชื่อเดือน เช่น "เมษายน" หรือ "payment.csv"
+                
+                // หา Daily Key ที่มีชื่อเดือนขึ้นต้นตรงกัน
+                let match = dailyKeys.find(dKey => dKey.startsWith(pMonth));
+                
+                // Fallback: ถ้าหาไม่เจอ แต่มีข้อมูลขายแค่เดือนเดียว ให้เหมาว่า payment นี้เป็นของเดือนนั้นเลย
+                if (!match && dailyKeys.length === 1) {
+                    match = dailyKeys[0];
+                }
+
+                if (match) {
+                    // ถ้ารวมข้อมูล ให้ต่อ array (เผื่อมี payment หลายไฟล์ในเดือนเดียว)
+                    datasets[match].paymentData = (datasets[match].paymentData && datasets[match].paymentData.length > 0) 
+                        ? datasets[match].paymentData.concat(datasets[pKey].paymentData)
+                        : datasets[pKey].paymentData;
+                    delete datasets[pKey]; // ลบข้อมูลที่ลอยอยู่ทิ้ง
+                }
+            });
+        }
+
+        // ========================================================
         // ฟังก์ชันโหลดไฟล์อัตโนมัติ (Parallel Fetch)
         // ========================================================
         async function fetchDefaultData() {
@@ -584,7 +630,7 @@
 
             const months = ['1','2','3','4','5','6','7','8','9','10','11','12','01','02','03','04','05','06','07','08','09'];
             const types = ['sales','payment','category','void', 'Category', 'Void', 'Sales', 'Payment'];
-            const exts = ['.csv', '.xlsx', '.xls']; // แก้ไข: เพิ่ม .xls 
+            const exts = ['.csv', '.xlsx', '.xls']; 
             const urlsToTry = [];
             
             // สร้างลิงก์ที่จะไปหา
@@ -592,7 +638,23 @@
                 months.forEach(month => {
                     exts.forEach(ext => {
                         urlsToTry.push(`./data/${type}-${month}${ext}`);
-                        urlsToTry.push(`./data/${type}_${month}${ext}`); // แก้ไข: เพิ่มรองรับ _ (underscore)
+                        urlsToTry.push(`./data/${type}_${month}${ext}`); 
+                    });
+                });
+            });
+
+            // เพิ่มการค้นหาชื่อไฟล์เฉพาะ Payment ให้รองรับการระบุปี ค.ศ. ต่อท้าย
+            // เช่น payment-01-2026.csv, payment-12-2026.xlsx
+            const strictMonths = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+            const paymentYears = ['2023', '2024', '2025', '2026', '2027', '2028'];
+            
+            ['payment', 'Payment'].forEach(type => {
+                strictMonths.forEach(month => {
+                    paymentYears.forEach(year => {
+                        exts.forEach(ext => {
+                            urlsToTry.push(`./data/${type}-${month}-${year}${ext}`);
+                            urlsToTry.push(`./data/${type}_${month}_${year}${ext}`);
+                        });
                     });
                 });
             });
@@ -604,7 +666,7 @@
 
             try {
                 const fetchPromises = urlsToTry.map(filePath => {
-                    const cacheBuster = `?t=${new Date().getTime()}`; // แก้ไข: ทะลุ Cache ป้องกัน Vercel จำค่าเก่า
+                    const cacheBuster = `?t=${new Date().getTime()}`; 
                     return fetch(encodeURI(filePath) + cacheBuster, { cache: 'no-store' }).then(async (res) => {
                         if (!res.ok) return null;
                         const contentType = res.headers.get('content-type') || '';
@@ -621,8 +683,17 @@
                     try {
                         const { filePath, buffer } = fileData;
                         const workbook = readWorkbookUniversal(buffer);
+                        
+                        // ป้องกัน Error "Cannot read properties of undefined (reading 'Sheets')"
+                        if (!workbook || !workbook.Sheets || !workbook.SheetNames || workbook.SheetNames.length === 0) {
+                            console.log(`ข้ามไฟล์ (ไฟล์ว่างหรืออ่านไม่ได้): ${filePath}`);
+                            continue;
+                        }
+                        
                         const rawJson = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: '' });
-                        const sampleStr = rawJson.slice(0, 20).map(r => r ? r.join('').toLowerCase() : '').join(' ');
+                        
+                        // ตัดช่องว่างทิ้งใน sampleStr ป้องกันการเว้นวรรคแปลกๆ ในไฟล์
+                        const sampleStr = rawJson.slice(0, 20).map(r => r ? r.join('').toLowerCase() : '').join(' ').replace(/\s/g, '');
                         
                         // ปรับปรุง Logic การตรวจจับเล็กน้อยให้แม่นยำขึ้น
                         const isVoid = filePath.toLowerCase().includes('void') || filePath.includes('สถานะสั่ง') || filePath.includes('สถานะการสั่ง') || (sampleStr.includes('ชื่อสินค้า') && sampleStr.includes('สถานะ'));
@@ -641,7 +712,7 @@
                             if(parsed) { mergeDataset(parsed, 'daily'); loadedMendori++; }
                         }
                     } catch(e) {
-                        console.log(`ข้ามไฟล์ (ไม่ใช่ตารางข้อมูล): ${fileData.filePath}`);
+                        console.log(`ข้ามไฟล์ (ไม่ใช่ตารางข้อมูลหรือรูปแบบผิด): ${fileData.filePath}`);
                     }
                 }
                 
@@ -652,6 +723,9 @@
                     }
                     window.dispatchEvent(new CustomEvent('updateCategoryReact'));
                 }
+
+                // สั่งประมวลผลจับคู่ข้อมูลที่ขาดหายไป
+                normalizeDatasets();
 
                 if (loadedMendori > 0 || loadedCategory > 0 || loadedVoid > 0) {
                     if (loadedMendori > 0) {
@@ -713,8 +787,17 @@
                     
                     try {
                         const workbook = readWorkbookUniversal(data);
+                        
+                        // ป้องกัน Error "Cannot read properties of undefined (reading 'Sheets')"
+                        if (!workbook || !workbook.Sheets || !workbook.SheetNames || workbook.SheetNames.length === 0) {
+                            console.log(`ข้ามไฟล์ (ไฟล์ว่างหรืออ่านไม่ได้): ${file.name}`);
+                            continue;
+                        }
+                        
                         const rawJson = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: '' });
-                        const sampleStr = rawJson.slice(0, 20).map(r => r ? r.join('').toLowerCase() : '').join(' ');
+                        
+                        // ตัดช่องว่างทิ้งใน sampleStr ป้องกันการเว้นวรรคแปลกๆ ในไฟล์
+                        const sampleStr = rawJson.slice(0, 20).map(r => r ? r.join('').toLowerCase() : '').join(' ').replace(/\s/g, '');
                         
                         const isVoid = name.includes('void') || name.includes('สถานะสั่ง') || name.includes('สถานะการสั่ง') || (sampleStr.includes('ชื่อสินค้า') && sampleStr.includes('สถานะ'));
                         const isCategory = name.includes('category') || name.includes('ยอดขายสินค้าตามวัน') || (sampleStr.includes('ชื่อสินค้า') && sampleStr.includes('จำนวนการขาย') && !isVoid);
@@ -724,21 +807,24 @@
                         } else if (isVoid) {
                             if(typeof window.processVoidData === 'function') { window.processVoidData(rawJson); loadedVoid++; }
                         } else if (sampleStr.includes('ประเภทการชำระเงิน')) {
-                            const parsed = parsePaymentData(rawJson, filePath);
+                            const parsed = parsePaymentData(rawJson, file.name);
                             if(parsed) { mergeDataset(parsed, 'payment'); loadedMendori++; }
                         } else if (sampleStr.includes('วันที่') && (sampleStr.includes('ยอด') || sampleStr.includes('บิล') || sampleStr.includes('สุทธิ'))) {
                             const parsed = parseDailyData(rawJson);
                             if(parsed) { mergeDataset(parsed, 'daily'); loadedMendori++; }
                         }
                     } catch(e) {
-                        console.log(`ข้ามไฟล์ (ไม่ใช่ตารางข้อมูล): ${fileData.filePath}`);
+                        console.log(`ข้ามไฟล์ (ข้อผิดพลาดในการอ่าน): ${file.name}`);
                     }
                 }
 
-                // แก้ไข: สั่ง Trigger ให้ React อัปเดตหลังจากโหลดไฟล์เสร็จ
+                // สั่ง Trigger ให้ React อัปเดตหลังจากโหลดไฟล์เสร็จ
                 if (loadedCategory > 0) {
                     window.dispatchEvent(new CustomEvent('updateCategoryReact'));
                 }
+
+                // สั่งประมวลผลจับคู่ข้อมูลที่ขาดหายไป
+                normalizeDatasets();
 
                 if (loadedMendori > 0 || loadedCategory > 0 || loadedVoid > 0) {
                     if (loadedMendori > 0) {
@@ -767,7 +853,7 @@
                     else if (loadedCategory > 0) switchGlobalTab('foodstory');
                     else if (loadedVoid > 0) switchGlobalTab('void');
                 } else {
-                    alert("ไม่พบไฟล์ที่มีโครงสร้างตรงกับระบบ กรุณาตรวจสอบไฟล์อีกครั้ง");
+                    alert("ไม่พบข้อมูลตารางที่ตรงกับระบบ (ไฟล์อาจว่างเปล่า หรือไม่ใช่ไฟล์รายงานของร้าน)");
                 }
             } catch(e) {
                 console.error("Manual Upload Error:", e);
@@ -891,10 +977,13 @@
                 if(lowerName.includes(engMonths[i]) || lowerName.includes(thMonthsFull[i])) { monthIdx = i; break; } 
             }
             
-            const numMatch = lowerName.match(/-(\d{1,2})\./);
-            if(numMatch && monthIdx === -1) {
-                let mNum = parseInt(numMatch[1]);
-                if(mNum >= 1 && mNum <= 12) monthIdx = mNum - 1;
+            // อัปเดต Regex ให้ฉลาดขึ้น จับตัวเลข 1-2 หลักหลัง -, _ หรือ เว้นวรรค ป้องกันการหลุด
+            if(monthIdx === -1) {
+                const numMatch = lowerName.match(/[-_\s](\d{1,2})(?:\.\w+|-|_|\s|\)|$)/);
+                if(numMatch) {
+                    let mNum = parseInt(numMatch[1]);
+                    if(mNum >= 1 && mNum <= 12) monthIdx = mNum - 1;
+                }
             }
 
             const yearMatch = filename.match(/(20\d{2}|25\d{2})/);
@@ -914,7 +1003,10 @@
             for (let i = 0; i < Math.min(20, rawData.length); i++) {
                 const row = rawData[i];
                 if (!row || row.filter(c => c !== undefined && c !== null && c !== '').length < 3) continue;
-                const rowStr = row.join('').toLowerCase();
+                
+                // ลบช่องว่างทิ้งก่อนเช็ค เพื่อความแม่นยำ 100%
+                const rowStr = row.map(c => c !== undefined && c !== null ? c.toString().replace(/\s/g, '') : '').join('').toLowerCase();
+                
                 if (rowStr.includes('ประเภทการชำระเงิน')) {
                     headerIdx = i;
                     row.forEach((cell, idx) => {
@@ -2347,7 +2439,7 @@
                     trClass = "hover:bg-gray-50 transition-colors duration-150 border-b border-gray-200 border-t-[3px] border-t-themeOrange";
                     currentDate = item.date;
                 }
-
+                
                 rowsHtml += `<tr class="${trClass}">`;
                 if (isFirstOfDay) {
                     rowsHtml += `<td rowspan="${dateRowSpans[item.date]}" class="px-6 py-4 font-semibold text-themeOrange whitespace-nowrap bg-gray-50 border-r border-gray-200">${item.date}</td>`;
@@ -2375,47 +2467,87 @@
             document.getElementById('voidFootValueTotal').textContent = sumValue.toLocaleString(undefined, {minimumFractionDigits: 2});
         }
 
-        function renderVoidChart(chartData, sumCancel, sumVoid) {
-            const categories = Object.keys(chartData).sort();
-            const cancelSeries = categories.map(d => chartData[d].cancel);
-            const voidSeries = categories.map(d => chartData[d].void);
+        function renderVoidChart(chartDataRaw, sumCancel, sumVoid) {
+            if (typeof Highcharts === 'undefined') return;
 
-            const chartOptions = {
-                chart: { type: 'column', style: { fontFamily: 'Noto Sans Thai, sans-serif' }, backgroundColor: 'transparent' },
-                title: { text: '' },
-                xAxis: { categories: categories, crosshair: true, labels: { style: { color: '#666' } }, gridLineWidth: 0 },
-                yAxis: { min: 0, title: { text: 'จำนวน (รายการ)', style: { color: '#666' } }, gridLineColor: '#f3f4f6' },
-                tooltip: {
-                    headerFormat: '<span style="font-size:12px; font-weight:bold; color:#333">{point.key}</span><br/>',
-                    pointFormat: '<span style="color:{series.color}">{series.name}</span>: <b>{point.y}</b> รายการ<br/>',
-                    shared: true, backgroundColor: 'rgba(255, 255, 255, 0.95)', borderColor: '#eee', borderRadius: 8, shadow: true
+            document.getElementById('voidTotalCancelCount').innerText = sumCancel;
+            document.getElementById('voidTotalVoidCount').innerText = sumVoid;
+
+            const labels = Object.keys(chartDataRaw).sort(); 
+            const cancelSeriesData = labels.map(date => ({ y: chartDataRaw[date].cancel, value: chartDataRaw[date].cancelValue }));
+            const voidSeriesData = labels.map(date => ({ y: chartDataRaw[date].void, value: chartDataRaw[date].voidValue }));
+
+            if (window.voidChartInst) window.voidChartInst.destroy();
+
+            window.voidChartInst = Highcharts.chart('voidCancelChart', {
+                chart: { 
+                    type: 'column', 
+                    backgroundColor: 'transparent', 
+                    style: { fontFamily: '"Noto Sans Thai", sans-serif' }
                 },
+                title: { text: null },
+                xAxis: { categories: labels, labels: { style: { color: '#4B5563' } } },
+                yAxis: { title: { text: 'จำนวน (รายการ)', style: { color: '#4B5563' } }, labels: { style: { color: '#4B5563' } }, gridLineColor: '#E5E7EB' },
                 plotOptions: {
-                    column: { pointPadding: 0.2, borderWidth: 0, borderRadius: 4 },
-                    series: { animation: { duration: 1000 } }
+                    column: {
+                        borderRadius: 4, 
+                        borderWidth: 1,
+                        borderColor: 'rgba(255,255,255,0.2)', // ขอบแสงสะท้อนบางๆ
+                        shadow: { color: 'rgba(0, 0, 0, 0.25)', offsetX: 3, offsetY: 3, width: 4 } // เงาตกกระทบด้านหลัง
+                    }
                 },
-                colors: ['#FF8C00', '#FFC107'],
-                legend: { itemStyle: { color: '#333', fontWeight: 'bold' } },
                 series: [
-                    { name: 'Cancel', data: cancelSeries },
-                    { name: 'Void', data: voidSeries }
+                    { 
+                        name: 'Cancel', 
+                        data: cancelSeriesData, 
+                        // ใช้ Gradient ไล่สีเพื่อให้ดูนูนเป็นทรงกระบอก
+                        color: {
+                            linearGradient: { x1: 0, y1: 0, x2: 1, y2: 0 },
+                            stops: [
+                                [0, '#c2410c'],    // ขอบซ้ายเข้ม
+                                [0.2, '#fb923c'],  // แสงตกกระทบ
+                                [0.5, '#f97316'],  // สีหลัก (ส้ม)
+                                [0.8, '#ea580c'],  // เริ่มเงา
+                                [1, '#9a3412']     // ขอบขวาเข้มสุด
+                            ]
+                        }
+                    },
+                    { 
+                        name: 'Void', 
+                        data: voidSeriesData, 
+                        // ใช้ Gradient ไล่สีแดงเข้มให้ดูนูนมีมิติ
+                        color: {
+                            linearGradient: { x1: 0, y1: 0, x2: 1, y2: 0 },
+                            stops: [
+                                [0, '#7f1d1d'],    // ขอบซ้ายเข้มจัด
+                                [0.2, '#f87171'],  // แสงตกกระทบ
+                                [0.5, '#dc2626'],  // สีหลัก (แดง)
+                                [0.8, '#b91c1c'],  // เริ่มเงา
+                                [1, '#450a0a']     // ขอบขวาเข้มจัด (ดำแดง)
+                            ]
+                        }
+                    }
                 ],
+                tooltip: {
+                    useHTML: true, backgroundColor: '#121212', style: { color: '#FFFFFF' },
+                    // กำหนดให้ Tooltip แสดงผลแยกแต่ละแท่งเวลาเอาเมาส์จิ้ม
+                    formatter: function() {
+                        let valFormatted = new Intl.NumberFormat('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2}).format(this.point.value);
+                        let titleColor = this.series.name === 'Cancel' ? '#F97316' : '#EF4444'; 
+                        return `
+                            <div style="padding: 4px;">
+                                <b style="color: ${titleColor}; font-size: 14px;">${this.series.name}</b><br/>
+                                <span style="color: #ccc">วันที่:</span> ${this.x}<br/>
+                                <span style="color: #ccc">จำนวน:</span> ${this.y} รายการ<br/>
+                                <span style="color: #ccc">มูลค่า:</span> <span style="color: #FF5252">${valFormatted}</span> บาท
+                            </div>
+                        `;
+                    }
+                },
+                legend: { itemStyle: { color: '#4B5563', fontWeight: 'normal' } },
                 credits: { enabled: false }
-            };
-
-            window.voidChartInst = Highcharts.chart('voidCancelChart', chartOptions);
+            });
         }
-
-        window.handleVoidLogoUpload = function(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('voidClientLogo').src = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-        };
 
         async function exportVoidToExcel() {
             const overlay = document.getElementById('exportOverlayVoid');
