@@ -510,10 +510,14 @@
             } catch(e) {}
 
             let textData = new TextDecoder("utf-8").decode(buffer);
-            if (!textData.includes('วันที่') && !textData.includes('ชื่อสินค้า') && !textData.includes('ยอด')) {
+            
+            // เพิ่มการกรองอักขระพิเศษและเพิ่มคำค้นหาให้ครอบคลุมไฟล์ Category มากขึ้น
+            const checkStr = textData.replace(/[\s\uFEFF]/g, '').toLowerCase();
+            
+            if (!checkStr.includes('วันที่') && !checkStr.includes('ชื่อสินค้า') && !checkStr.includes('ยอด') && !checkStr.includes('รายการ')) {
                 try {
                     const tisText = new TextDecoder("windows-874").decode(buffer);
-                    if (tisText.includes('วันที่') || tisText.includes('ชื่อสินค้า') || tisText.includes('ยอด')) {
+                    if (tisText.includes('วันที่') || tisText.includes('ชื่อสินค้า') || tisText.includes('ยอด') || tisText.includes('รายการ')) {
                         textData = tisText;
                     } else {
                         const tis620Text = new TextDecoder("tis-620").decode(buffer);
@@ -1426,6 +1430,8 @@
                     generatePivotData(allParsed);
                     const emptySt = document.getElementById('emptyState');
                     if(emptySt) emptySt.classList.add('hidden');
+                } else {
+                    console.warn("Category data fetched but skipped due to header mismatch.");
                 }
             };
 
@@ -1477,12 +1483,17 @@
             for (let i = 0; i < Math.min(20, rows.length); i++) {
               // แก้ไข: ตัด \uFEFF และ \u200B ป้องกันไฟล์ CSV จาก Vercel มีอักขระล่องหน
               const rowStr = (rows[i] || []).map(c => c !== undefined && c !== null ? c.toString().replace(/[\s\uFEFF\u200B]/g, '') : '').join('').toLowerCase();
-              if (rowStr.includes('วันที่') && (rowStr.includes('ชื่อสินค้า') || rowStr.includes('รายการ'))) {
+              
+              // ปรับให้จับคู่กว้างขึ้น รองรับหัวตาราง Category ที่หลากหลายและทนต่อ Error
+              if ((rowStr.includes('วันที่') || rowStr.includes('date')) && (rowStr.includes('ชื่อสินค้า') || rowStr.includes('รายการ') || rowStr.includes('item'))) {
                 headerIndex = i;
                 break;
               }
             }
-            if (headerIndex === -1) return null;
+            if (headerIndex === -1) {
+                console.error("Could not find required headers in category file", rows);
+                return null;
+            }
             const headers = rows[headerIndex].map(h => (h || '').toString().trim());
             const data = [];
             for (let i = headerIndex + 1; i < rows.length; i++) {
