@@ -116,13 +116,26 @@
                         <input type="file" id="logoInput" accept="image/*" class="hidden print:hidden" onchange="updateLogo(event)">
                     </div>
                     <div>
-                        <div class="flex items-center gap-3">
-                            <h1 class="text-2xl font-bold text-gray-900">Mendori Ramen</h1>
-                            <button id="printBtn" onclick="window.print()" class="print:hidden hidden md:flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm px-3 py-1.5 rounded-lg border border-gray-300 transition-colors">
+                        <div class="flex flex-wrap sm:flex-nowrap items-center gap-3">
+                            <input type="text" value="Mendori Ramen" class="text-2xl font-bold text-gray-900 bg-transparent border-b-2 border-transparent hover:border-gray-300 focus:border-orange-500 focus:outline-none transition-colors w-full sm:w-[350px] md:w-[450px] p-0 m-0" title="คลิกเพื่อแก้ไขชื่อลูกค้า" placeholder="พิมพ์ชื่อลูกค้า/ร้านค้าที่นี่...">
+                            <button id="printBtn" onclick="window.print()" class="print:hidden hidden md:flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm px-3 py-1.5 rounded-lg border border-gray-300 transition-colors whitespace-nowrap shrink-0">
                                 <i class="fas fa-file-pdf text-red-500"></i> เซฟ PDF
                             </button>
                         </div>
-                        <p class="text-sm text-gray-500">Sales & Payment Analytics</p>
+                        <p class="text-sm text-gray-500 mt-1">Sales & Payment Analytics</p>
+                    </div>
+                </div>
+                
+                <div id="dropZone" class="print:hidden relative group w-full md:w-auto min-w-[320px] flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 hover:border-orange-500 hover:bg-orange-50 transition-all cursor-pointer">
+                    <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" multiple class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                    <div class="flex items-center gap-3 text-center pointer-events-none">
+                        <div class="bg-white p-2 rounded-lg shadow-sm group-hover:scale-110 transition-transform">
+                            <i class="fas fa-file-excel text-green-600 text-2xl"></i>
+                        </div>
+                        <div class="text-left">
+                            <p class="text-sm font-semibold text-gray-700"><span class="text-orange-600">คลิกเพื่อเลือกไฟล์</span></p>
+                            <p class="text-xs text-gray-400 mt-0.5">ลากไฟล์ลงกล่องนี้อัปโหลดเองได้</p>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -502,6 +515,11 @@
                     const tisText = new TextDecoder("windows-874").decode(buffer);
                     if (tisText.includes('วันที่') || tisText.includes('ชื่อสินค้า') || tisText.includes('ยอด')) {
                         textData = tisText;
+                    } else {
+                        const tis620Text = new TextDecoder("tis-620").decode(buffer);
+                        if (tis620Text.includes('วันที่') || tis620Text.includes('ชื่อสินค้า') || tis620Text.includes('ยอด')) {
+                            textData = tis620Text;
+                        }
                     }
                 } catch(e) {}
             }
@@ -563,6 +581,7 @@
             const exts = ['.csv', '.xlsx'];
             const urlsToTry = [];
             
+            // สร้างลิงก์ที่จะไปหา
             types.forEach(type => {
                 months.forEach(month => {
                     exts.forEach(ext => {
@@ -578,7 +597,7 @@
 
             try {
                 const fetchPromises = urlsToTry.map(filePath => 
-                    fetch(filePath).then(async (res) => {
+                    fetch(encodeURI(filePath)).then(async (res) => {
                         if (!res.ok) return null;
                         const contentType = res.headers.get('content-type') || '';
                         if (contentType.includes('text/html')) return null;
@@ -620,17 +639,18 @@
                     if (loadedMendori > 0) {
                         document.getElementById('emptyState').classList.add('hidden');
                         document.getElementById('tabsWrapper').classList.remove('hidden');
-                        buildTabs();
                         
-                        // กรองเฉพาะ Tab ที่มีข้อมูล
+                        // กรองเฉพาะ Tab ที่ยอดขาย > 0 เท่านั้น
                         const validKeys = Object.keys(datasets).filter(k => {
-                            const hasDaily = datasets[k].dailyData && datasets[k].dailyData.length > 0;
-                            const hasPayment = datasets[k].paymentData && datasets[k].paymentData.length > 0;
-                            const hasSales = datasets[k].summary && datasets[k].summary.totalNetSales > 0;
-                            return (hasDaily || hasPayment) && hasSales;
+                            const d = datasets[k];
+                            return d.summary && (d.summary.totalNetSales > 0 || d.summary.totalBills > 0);
                         });
-                        const tabKeys = validKeys.sort((a, b) => (datasets[a].sortDate || 0) - (datasets[b].sortDate || 0));
-                        if (tabKeys.length > 1) switchTab('compare'); else if(tabKeys.length === 1) switchTab(tabKeys[0]);
+                        
+                        if(validKeys.length > 0) {
+                            buildTabs();
+                            const tabKeys = validKeys.sort((a, b) => (datasets[a].sortDate || 0) - (datasets[b].sortDate || 0));
+                            if (tabKeys.length > 1) switchTab('compare'); else if(tabKeys.length === 1) switchTab(tabKeys[0]);
+                        }
                     }
 
                     let toastMsgs = [];
@@ -701,16 +721,17 @@
                     if (loadedMendori > 0) {
                         document.getElementById('emptyState').classList.add('hidden');
                         document.getElementById('tabsWrapper').classList.remove('hidden');
-                        buildTabs();
                         
                         const validKeys = Object.keys(datasets).filter(k => {
-                            const hasDaily = datasets[k].dailyData && datasets[k].dailyData.length > 0;
-                            const hasPayment = datasets[k].paymentData && datasets[k].paymentData.length > 0;
-                            const hasSales = datasets[k].summary && datasets[k].summary.totalNetSales > 0;
-                            return (hasDaily || hasPayment) && hasSales;
+                            const d = datasets[k];
+                            return d.summary && (d.summary.totalNetSales > 0 || d.summary.totalBills > 0);
                         });
-                        const tabKeys = validKeys.sort((a, b) => (datasets[a].sortDate || 0) - (datasets[b].sortDate || 0));
-                        if (tabKeys.length > 1) switchTab('compare'); else if(tabKeys.length === 1) switchTab(tabKeys[0]);
+                        
+                        if(validKeys.length > 0) {
+                            buildTabs();
+                            const tabKeys = validKeys.sort((a, b) => (datasets[a].sortDate || 0) - (datasets[b].sortDate || 0));
+                            if (tabKeys.length > 1) switchTab('compare'); else if(tabKeys.length === 1) switchTab(tabKeys[0]);
+                        }
                     }
 
                     let toastMsgs = [];
@@ -736,6 +757,33 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => { fetchDefaultData(); }, 1200);
+
+            // เปิดใช้งานระบบ Drag & Drop สำหรับกล่องอัปโหลดตรงกลาง (Sales & Payment)
+            const dropZone = document.getElementById('dropZone');
+            const emptyState = document.getElementById('emptyState');
+            
+            // ป้องกันเบราว์เซอร์เปิดไฟล์เองเมื่อลากไฟล์มาวาง
+            window.addEventListener('dragover', (e) => e.preventDefault());
+            window.addEventListener('drop', (e) => e.preventDefault());
+            
+            [dropZone, emptyState].forEach(zone => {
+                if(!zone) return;
+                zone.addEventListener('dragover', (e) => { 
+                    e.preventDefault(); 
+                    zone.classList.add('border-orange-500', 'bg-orange-50'); 
+                });
+                zone.addEventListener('dragleave', (e) => { 
+                    e.preventDefault(); 
+                    zone.classList.remove('border-orange-500', 'bg-orange-50'); 
+                });
+                zone.addEventListener('drop', (e) => {
+                    e.preventDefault(); 
+                    zone.classList.remove('border-orange-500', 'bg-orange-50');
+                    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                        window.handleGlobalFiles(e.dataTransfer.files);
+                    }
+                });
+            });
         });
 
         // -------------------------------------------------------------
@@ -957,11 +1005,10 @@
             
             // กรองเอาเฉพาะเดือนที่มีข้อมูลจริงๆ (ป้องกัน Tab เปล่า)
             const validKeys = Object.keys(datasets).filter(k => {
-                const hasDaily = datasets[k].dailyData && datasets[k].dailyData.length > 0;
-                const hasPayment = datasets[k].paymentData && datasets[k].paymentData.length > 0;
-                const hasSales = datasets[k].summary && datasets[k].summary.totalNetSales > 0;
-                return (hasDaily || hasPayment) && hasSales;
+                const d = datasets[k];
+                return d.summary && (d.summary.totalNetSales > 0 || d.summary.totalBills > 0);
             });
+            
             const tabKeys = validKeys.sort((a, b) => (datasets[a].sortDate || 0) - (datasets[b].sortDate || 0));
             
             if (tabKeys.length > 1) {
@@ -1018,10 +1065,8 @@
             const tbody = document.getElementById('compareTableBody'); tbody.innerHTML = '';
             
             const validKeys = Object.keys(datasets).filter(k => {
-                const hasDaily = datasets[k].dailyData && datasets[k].dailyData.length > 0;
-                const hasPayment = datasets[k].paymentData && datasets[k].paymentData.length > 0;
-                const hasSales = datasets[k].summary && datasets[k].summary.totalNetSales > 0;
-                return (hasDaily || hasPayment) && hasSales;
+                const d = datasets[k];
+                return d.summary && (d.summary.totalNetSales > 0 || d.summary.totalBills > 0);
             });
             const sortedKeys = validKeys.sort((a, b) => (datasets[a].sortDate || 0) - (datasets[b].sortDate || 0));
             const totalMonths = sortedKeys.length;
@@ -1350,6 +1395,7 @@
             };
             defaultLogo.src = './Logo.jpg';
             
+            // ทำให้ React รับข้อมูลหลายไฟล์พร้อมกันแบบสมบูรณ์
             window.triggerCategoryRender = (dataArr) => {
                 const allParsed = [];
                 dataArr.forEach(rawRows => {
@@ -1363,6 +1409,7 @@
                 }
             };
 
+            // ตรวจสอบว่าถ้ามีคิวรอไว้ก่อนหน้านี้ ให้ Render เลย
             if (window.allCategoryRows && window.allCategoryRows.length > 0) {
                 window.triggerCategoryRender(window.allCategoryRows);
             }
@@ -1451,6 +1498,7 @@
 
                   let day, month, year;
 
+                  // ถอดรหัสวันที่แบบ Excel Serial
                   if (typeof rawDate === 'number') {
                       let d = new Date(Math.round((rawDate - 25569) * 86400 * 1000));
                       day = d.getDate(); month = d.getMonth() + 1; year = d.getFullYear();
@@ -2295,6 +2343,8 @@
             const labels = Object.keys(chartDataRaw).sort(); 
             const cancelSeriesData = labels.map(date => ({ y: chartDataRaw[date].cancel, value: chartDataRaw[date].cancelValue }));
             const voidSeriesData = labels.map(date => ({ y: chartDataRaw[date].void, value: chartDataRaw[date].voidValue }));
+
+            if (window.voidChartInst) window.voidChartInst.destroy();
 
             window.voidChartInst = Highcharts.chart('voidCancelChart', {
                 chart: { type: 'column', backgroundColor: 'transparent', style: { fontFamily: '"Noto Sans Thai", sans-serif' } },
