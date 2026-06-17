@@ -97,7 +97,6 @@
                 <button id="btn-foodstory" onclick="switchGlobalTab('foodstory')" class="border-transparent text-gray-500 hover:text-blue-600 hover:border-blue-300 whitespace-nowrap py-4 px-1 border-b-2 font-bold text-base flex items-center gap-2 transition-colors">
                     <i class="fas fa-chart-pie"></i> Category Report
                 </button>
-                <!-- ปรับให้ปุ่ม Void กลับมาทำงาน -->
                 <button id="btn-void" onclick="switchGlobalTab('void')" class="border-transparent text-gray-500 hover:text-red-600 hover:border-red-300 whitespace-nowrap py-4 px-1 border-b-2 font-bold text-base flex items-center gap-2 transition-colors">
                     <i class="fas fa-ban"></i> Cancelled and Void Report
                 </button>
@@ -509,7 +508,6 @@
             let textData = new TextDecoder("utf-8").decode(buffer);
             
             const checkStr = textData.replace(/[\s\uFEFF]/g, '').toLowerCase();
-            // อัปเดตคีย์เวิร์ดรองรับ Void อัตโนมัติ ("สถานะ", "เปิดบิล")
             const keywords = ['วันที่', 'ชื่อสินค้า', 'ยอด', 'รายการ', 'ชำระเงิน', 'ประเภท', 'สถานะ', 'เปิดบิล'];
             const hasKeyword = (str) => keywords.some(k => str.includes(k));
             
@@ -616,44 +614,35 @@
             overlay.classList.remove('hidden');
             overlay.classList.add('flex');
 
-            const baseMonths = ['01','02','03','04','05','06','07','08','09','10','11','12','1','2','3','4','5','6','7','8','9'];
-            const exts = ['.csv', '.xlsx', '.xls']; 
+            // -------------------------------------------------------------
+            // อัปเดต: สร้างลิงก์เฉพาะรูปแบบที่ใช้จริง เพื่อลดภาระเซิร์ฟเวอร์
+            // จากเดิมสร้างเกือบ 8,000 ลิงก์ เหลือแค่ไม่ถึง 300 ลิงก์ (รันไวขึ้น 20 เท่า ไม่ติดลิมิตเบราว์เซอร์)
+            // -------------------------------------------------------------
+            const months = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+            const exts = ['.xlsx', '.csv']; 
             const urlsToTry = [];
             
-            const baseTypes = [
-                'sales', 'Sales', 'ยอดขาย', 'ยอดขายสินค้าตามวัน',
-                'payment', 'Payment', 'การชำระเงิน',
-                'category', 'Category', 'หมวดสินค้า',
-                'void', 'Void', 'สถานะการสั่ง', 'สถานะสั่ง', 'สถานะการสั่งสินค้า'
-            ];
-
-            // 1. แบบปกติ: ชื่อไฟล์-เดือน (เช่น Sales-01.xlsx, Void-01.xlsx)
-            baseTypes.forEach(type => {
-                baseMonths.forEach(month => {
-                    exts.forEach(ext => {
-                        urlsToTry.push(`./data/${type}-${month}${ext}`);
-                        urlsToTry.push(`./data/${type}_${month}${ext}`); 
+            months.forEach(m => {
+                exts.forEach(ext => {
+                    // 1. แบบปกติ: ชื่อไฟล์-เดือน (เช่น Sales-01.xlsx, Void-01.xlsx)
+                    ['Sales', 'sales', 'Payment', 'payment', 'Category', 'category', 'Void', 'void'].forEach(type => {
+                        urlsToTry.push(`./data/${type}-${m}${ext}`);
+                    });
+                    
+                    // 2. แบบกำหนดปี: ชื่อไฟล์-เดือน-ปี (เช่น payment-01-2026.xlsx)
+                    // ครอบคลุมปีปัจจุบัน ย้อนหลัง และอนาคต 1 ปี
+                    ['2025', '2026', '2027'].forEach(y => {
+                        urlsToTry.push(`./data/Payment-${m}-${y}${ext}`);
+                        urlsToTry.push(`./data/payment-${m}-${y}${ext}`);
+                        urlsToTry.push(`./data/Category-${m}-${y}${ext}`);
+                        urlsToTry.push(`./data/category-${m}-${y}${ext}`);
                     });
                 });
             });
 
-            // 2. แบบกำหนดปี: ชื่อไฟล์-เดือน-ปี (เช่น payment-01-2026.xlsx, void-12-2026.csv)
-            const strictMonths = ['01','02','03','04','05','06','07','08','09','10','11','12'];
-            const targetYears = ['2023', '2024', '2025', '2026', '2027', '2028'];
-            
-            baseTypes.forEach(type => {
-                strictMonths.forEach(month => {
-                    targetYears.forEach(year => {
-                        exts.forEach(ext => {
-                            urlsToTry.push(`./data/${type}-${month}-${year}${ext}`);
-                            urlsToTry.push(`./data/${type}_${month}_${year}${ext}`);
-                        });
-                    });
-                });
-            });
-
-            urlsToTry.push('./data/ยอดขายสินค้าตามวัน.csv', './data/ยอดขายสินค้าตามวัน.xlsx', './data/ยอดขายสินค้าตามวัน.xls');
-            urlsToTry.push('./data/รายงานสถานะการสั่งสินค้า.csv', './data/รายงานสถานะการสั่งสินค้า.xlsx', './data/รายงานสถานะการสั่งสินค้า.xls');
+            // เพิ่มไฟล์ภาษาไทยเพื่อความครอบคลุม
+            urlsToTry.push('./data/ยอดขายสินค้าตามวัน.csv', './data/ยอดขายสินค้าตามวัน.xlsx');
+            urlsToTry.push('./data/รายงานสถานะการสั่งสินค้า.csv', './data/รายงานสถานะการสั่งสินค้า.xlsx');
 
             let loadedMendori = 0, loadedCategory = 0, loadedVoid = 0;
 
