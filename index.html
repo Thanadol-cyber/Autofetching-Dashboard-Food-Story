@@ -47,11 +47,6 @@
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        #void-wrapper { font-family: 'Noto Sans Thai', sans-serif; background-color: #F8F9FA; min-height: 100vh; }
-        #void-wrapper ::-webkit-scrollbar { width: 8px; height: 8px; }
-        #void-wrapper ::-webkit-scrollbar-track { background: #f1f1f1; }
-        #void-wrapper ::-webkit-scrollbar-thumb { background: #FF8C00; border-radius: 4px; }
-        #void-wrapper ::-webkit-scrollbar-thumb:hover { background: #e07b00; }
         .upload-area.dragover { background-color: #FFF3E0; border-color: #FF8C00; }
 
         @media print {
@@ -61,7 +56,7 @@
             .shadow-sm, .shadow-md, .shadow-lg { box-shadow: none !important; border: 1px solid #e5e7eb !important; }
             canvas { max-width: 100% !important; height: auto !important; page-break-inside: avoid; }
             .print-page-break { page-break-before: always; }
-            #app, #void-wrapper { padding: 0 !important; max-width: 100% !important; }
+            #app { padding: 0 !important; max-width: 100% !important; }
         }
     </style>
 </head>
@@ -93,9 +88,6 @@
                 </button>
                 <button id="btn-foodstory" onclick="switchGlobalTab('foodstory')" class="border-transparent text-gray-500 hover:text-blue-600 hover:border-blue-300 whitespace-nowrap py-4 px-1 border-b-2 font-bold text-base flex items-center gap-2 transition-colors">
                     <i class="fas fa-chart-pie"></i> Category Report
-                </button>
-                <button id="btn-void" onclick="switchGlobalTab('void')" class="border-transparent text-gray-500 hover:text-red-600 hover:border-red-300 whitespace-nowrap py-4 px-1 border-b-2 font-bold text-base flex items-center gap-2 transition-colors">
-                    <i class="fas fa-ban"></i> Cancelled and Void Report
                 </button>
             </div>
         </div>
@@ -367,119 +359,6 @@
         <div id="root"></div>
     </div>
 
-    <div id="void-wrapper" class="hidden relative">
-        <div id="exportOverlayVoid" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] hidden flex-col items-center justify-center transition-opacity">
-            <div class="bg-white p-8 rounded-xl shadow-2xl flex flex-col items-center">
-                <svg class="animate-spin -ml-1 mr-3 h-10 w-10 text-themeOrange mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <p class="text-lg font-bold text-gray-800">กำลังสร้างไฟล์ Excel...</p>
-                <p class="text-sm text-gray-500 mt-1">กรุณารอสักครู่ ระบบกำลังจัดรูปแบบให้สวยงาม</p>
-            </div>
-        </div>
-
-        <div class="p-4 md:p-8 max-w-7xl mx-auto">
-            <header class="flex items-center mb-8 bg-white p-4 md:p-6 rounded-2xl shadow-sm border-l-4 border-l-themeOrange">
-                <div class="relative w-16 h-16 md:w-20 md:h-20 rounded-full bg-white border-2 border-themeYellow flex-shrink-0 flex items-center justify-center overflow-hidden shadow-sm cursor-pointer group" onclick="document.getElementById('voidLogoInput').click()" title="คลิกเพื่อเปลี่ยนโลโก้">
-                    <img id="voidClientLogo" src="Logo.jpg" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=Logo&background=121212&color=FFC107&font-size=0.33';" alt="Client Logo" class="w-full h-full object-cover">
-                    <div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        <i class="fas fa-camera text-white text-xl"></i>
-                    </div>
-                    <input type="file" id="voidLogoInput" accept="image/*" class="hidden print:hidden" onchange="handleVoidLogoUpload(event)">
-                </div>
-                
-                <div class="ml-6">
-                    <h1 class="text-2xl md:text-4xl font-bold text-themeBlack">
-                        สถานะการยกเลิก และ Void บิล
-                    </h1>
-                    <p class="text-gray-500 mt-1 text-sm md:text-base">รายงานสรุปรายการสินค้าที่ถูกยกเลิก (Cancel) และ Void ออกจากระบบ</p>
-                </div>
-            </header>
-
-            <div id="voidUploadContainer" class="mb-8 bg-white p-6 md:p-10 rounded-2xl shadow-sm border border-gray-200">
-                <div class="text-center">
-                    <h2 class="text-xl font-semibold mb-2 text-themeBlack">รอโหลดข้อมูลอัตโนมัติ หรือ ลากไฟล์มาวางที่นี่</h2>
-                    <p class="text-gray-500 text-sm mb-6">ระบบจะดึงไฟล์ /data/ ให้อัตโนมัติ หรือจะอัปโหลดเองก็ได้</p>
-                    
-                    <div id="voidDropZone" class="upload-area border-2 border-dashed border-gray-300 rounded-xl p-8 transition-colors duration-200 cursor-pointer relative hover:bg-gray-50">
-                        <input type="file" id="voidFileInput" accept=".csv, .xlsx, .xls" multiple class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="window.handleGlobalFiles(this.files)">
-                        <i class="fas fa-file-excel text-themeOrange text-5xl mb-4"></i>
-                        <p class="text-gray-700 font-medium pointer-events-none">ลากไฟล์มาวางที่นี่ หรือ <span class="text-themeOrange underline">คลิกเพื่อเลือกไฟล์</span></p>
-                    </div>
-                    
-                    <div class="mt-6 flex flex-wrap gap-4 justify-center">
-                        <label class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium cursor-pointer transition-colors shadow-sm flex items-center gap-2">
-                            <i class="fas fa-folder-open"></i> อัปโหลดทั้งโฟลเดอร์
-                            <input type="file" class="hidden" webkitdirectory directory multiple onchange="window.handleGlobalFiles(this.files)">
-                        </label>
-                    </div>
-                </div>
-            </div>
-
-            <div id="voidDashboardContainer" class="hidden grid-cols-1 gap-8">
-                
-                <div class="flex justify-end gap-2 -mb-4 relative z-10">
-                    <button id="btnExportVoid" onclick="exportVoidToExcel()" class="hidden flex items-center px-4 py-2 bg-green-600 text-white hover:bg-green-700 border border-green-700 rounded-lg transition-colors duration-200 font-bold shadow-sm">
-                        <i class="fas fa-download mr-2"></i> Export Excel
-                    </button>
-                    <button onclick="resetVoidApp()" class="flex items-center px-4 py-2 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white border border-red-200 hover:border-red-500 rounded-lg transition-colors duration-200 font-medium shadow-sm">
-                        <i class="fas fa-trash-alt mr-2"></i> ล้างข้อมูล
-                    </button>
-                </div>
-
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col">
-                    <h2 class="text-xl font-bold mb-4 text-themeBlack flex items-center border-b pb-3">
-                        <span class="w-2 h-6 bg-themeOrange rounded-full mr-3"></span>สถิติรายวัน
-                    </h2>
-                    <div id="voidCancelChart" class="w-full h-80 min-h-[350px]"></div>
-                    
-                    <div class="mt-4 grid grid-cols-2 gap-4 text-center">
-                        <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 shadow-sm">
-                            <p class="text-gray-500 text-sm font-medium">ยอด Cancel ทั้งหมด</p>
-                            <p class="text-3xl font-bold text-themeOrange mt-1" id="voidTotalCancelCount">0</p>
-                        </div>
-                        <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 shadow-sm">
-                            <p class="text-gray-500 text-sm font-medium">ยอด Void ทั้งหมด</p>
-                            <p class="text-3xl font-bold text-themeYellow mt-1" id="voidTotalVoidCount">0</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-                    <h2 class="text-xl font-bold mb-4 text-themeBlack flex items-center border-b pb-3">
-                        <span class="w-2 h-6 bg-themeYellow rounded-full mr-3"></span>ตารางสรุปการยกเลิก และ Void บิล
-                    </h2>
-                    <div class="overflow-x-auto rounded-xl border border-gray-300 shadow-sm">
-                        <table class="min-w-full text-left text-sm whitespace-nowrap">
-                            <thead class="bg-themeBlack text-white uppercase">
-                                <tr>
-                                    <th class="px-6 py-4 font-semibold text-themeOrange">วันที่เปิดบิล</th>
-                                    <th class="px-6 py-4 font-semibold text-themeOrange">ยกเลิกโดย</th>
-                                    <th class="px-6 py-4 font-semibold text-themeOrange">เวลาที่ยกเลิก</th>
-                                    <th class="px-6 py-4 font-semibold text-themeOrange">ชื่อสินค้า</th>
-                                    <th class="px-6 py-4 font-semibold text-themeOrange">หมายเหตุ</th>
-                                    <th class="px-6 py-4 font-semibold text-center border-l border-gray-700">Cancel</th>
-                                    <th class="px-6 py-4 font-semibold text-center border-l border-gray-700">Void</th>
-                                    <th class="px-6 py-4 font-semibold text-right border-l border-gray-700 text-red-400">มูลค่า (บาท)</th>
-                                </tr>
-                            </thead>
-                            <tbody id="voidPivotTableBody" class="bg-white"></tbody>
-                            <tfoot class="bg-gray-100 font-bold text-themeBlack border-t-[3px] border-themeBlack">
-                                <tr>
-                                    <td class="px-6 py-4 text-right uppercase" colspan="5">Grand Total</td>
-                                    <td class="px-6 py-4 text-center border-l border-gray-300" id="voidFootCancelTotal">0</td>
-                                    <td class="px-6 py-4 text-center border-l border-gray-300" id="voidFootVoidTotal">0</td>
-                                    <td class="px-6 py-4 text-right border-l border-gray-300 text-red-600" id="voidFootValueTotal">0.00</td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script>
         function readWorkbookUniversal(buffer) {
             const utf8Text = new TextDecoder("utf-8").decode(buffer).trim();
@@ -526,9 +405,6 @@
         }
 
         window.allCategoryRows = [];
-        window.globalVoidPivotData = {};
-        window.globalChartDataRaw = {};
-        window.globalVoidTotals = { cancel: 0, void: 0, value: 0 };
 
         window.processCategoryData = function(data) {
             window.allCategoryRows.push(data);
@@ -549,19 +425,21 @@
         }
 
         function switchGlobalTab(tabId) {
-            ['mendori', 'foodstory', 'void'].forEach(id => {
+            ['mendori', 'foodstory'].forEach(id => {
                 const wrapper = document.getElementById(`${id}-wrapper`);
-                if (id === tabId) { wrapper.classList.remove('hidden'); wrapper.classList.add('block'); } 
-                else { wrapper.classList.add('hidden'); wrapper.classList.remove('block'); }
+                if (wrapper) {
+                    if (id === tabId) { wrapper.classList.remove('hidden'); wrapper.classList.add('block'); } 
+                    else { wrapper.classList.add('hidden'); wrapper.classList.remove('block'); }
+                }
             });
 
-            ['btn-mendori', 'btn-foodstory', 'btn-void'].forEach(id => {
-                document.getElementById(id).className = "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-bold text-base flex items-center gap-2 transition-colors";
+            ['btn-mendori', 'btn-foodstory'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) btn.className = "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-bold text-base flex items-center gap-2 transition-colors";
             });
 
             if(tabId === 'mendori') { document.getElementById('btn-mendori').className = "border-orange-500 text-orange-600 whitespace-nowrap py-4 px-1 border-b-2 font-bold text-base flex items-center gap-2 transition-colors"; } 
             else if(tabId === 'foodstory') { document.getElementById('btn-foodstory').className = "border-blue-500 text-blue-600 whitespace-nowrap py-4 px-1 border-b-2 font-bold text-base flex items-center gap-2 transition-colors"; } 
-            else if(tabId === 'void') { document.getElementById('btn-void').className = "border-red-500 text-red-600 whitespace-nowrap py-4 px-1 border-b-2 font-bold text-base flex items-center gap-2 transition-colors"; }
         }
 
         function normalizeDatasets() {
@@ -609,10 +487,10 @@
             const baseTypes = [
                 'sales', 'Sales', 'ยอดขาย', 'ยอดขายสินค้าตามวัน',
                 'payment', 'Payment', 'การชำระเงิน',
-                'category', 'Category', 'หมวดสินค้า',
-                'void', 'Void', 'สถานะการสั่ง', 'สถานะสั่ง', 'สถานะการสั่งสินค้า'
+                'category', 'Category', 'หมวดสินค้า'
             ];
 
+            // 1. แบบปกติ: ชื่อไฟล์-เดือน (เช่น Sales-01.xlsx)
             baseTypes.forEach(type => {
                 baseMonths.forEach(month => {
                     exts.forEach(ext => {
@@ -622,6 +500,7 @@
                 });
             });
 
+            // 2. แบบกำหนดปี: ชื่อไฟล์-เดือน-ปี (เช่น payment-01-2026.xlsx)
             const strictMonths = ['01','02','03','04','05','06','07','08','09','10','11','12'];
             const targetYears = ['2023', '2024', '2025', '2026', '2027', '2028'];
             
@@ -637,9 +516,8 @@
             });
 
             urlsToTry.push('./data/ยอดขายสินค้าตามวัน.csv', './data/ยอดขายสินค้าตามวัน.xlsx', './data/ยอดขายสินค้าตามวัน.xls');
-            urlsToTry.push('./data/รายงานสถานะการสั่งสินค้า.csv', './data/รายงานสถานะการสั่งสินค้า.xlsx', './data/รายงานสถานะการสั่งสินค้า.xls');
-
-            let loadedMendori = 0, loadedCategory = 0, loadedVoid = 0;
+            
+            let loadedMendori = 0, loadedCategory = 0;
 
             try {
                 const fetchPromises = urlsToTry.map(filePath => {
@@ -670,14 +548,18 @@
                         
                         const sampleStr = rawJson.slice(0, 20).map(r => r ? r.join('').toLowerCase() : '').join(' ').replace(/[\s\uFEFF\u200B]/g, '');
                         
-                        const isVoid = filePath.toLowerCase().includes('void') || filePath.includes('สถานะสั่ง') || filePath.includes('สถานะการสั่ง') || (sampleStr.includes('ชื่อสินค้า') && sampleStr.includes('สถานะ'));
-                        const isCategory = filePath.toLowerCase().includes('category') || filePath.includes('ยอดขายสินค้าตามวัน') || (sampleStr.includes('ชื่อสินค้า') && sampleStr.includes('จำนวนการขาย') && !isVoid);
+                        // Ignore Void logic
+                        const isVoid = filePath.toLowerCase().includes('void') || filePath.includes('สถานะสั่ง') || filePath.includes('สถานะการสั่ง') || (sampleStr.includes('ชื่อสินค้า') && (sampleStr.includes('สถานะ') || sampleStr.includes('status')));
+                        
+                        if (isVoid) {
+                           continue; // ข้ามไฟล์ Void ไปก่อน
+                        }
+
+                        const isCategory = filePath.toLowerCase().includes('category') || filePath.includes('ยอดขายสินค้าตามวัน') || (sampleStr.includes('ชื่อสินค้า') && sampleStr.includes('จำนวน'));
 
                         if (isCategory) {
                             window.allCategoryRows.push(rawJson); 
                             loadedCategory++;
-                        } else if (isVoid) {
-                            if(typeof window.processVoidData === 'function') { window.processVoidData(rawJson); loadedVoid++; }
                         } else if (sampleStr.includes('ประเภทการชำระเงิน')) {
                             const parsed = parsePaymentData(rawJson, filePath);
                             if(parsed) { mergeDataset(parsed, 'payment'); loadedMendori++; }
@@ -699,7 +581,7 @@
 
                 normalizeDatasets();
 
-                if (loadedMendori > 0 || loadedCategory > 0 || loadedVoid > 0) {
+                if (loadedMendori > 0 || loadedCategory > 0) {
                     if (loadedMendori > 0) {
                         document.getElementById('emptyState').classList.add('hidden');
                         document.getElementById('tabsWrapper').classList.remove('hidden');
@@ -719,11 +601,9 @@
                     let toastMsgs = [];
                     if(loadedMendori > 0) toastMsgs.push(`• Sales & Payment: อ่านข้อมูล ${loadedMendori} ไฟล์`);
                     if(loadedCategory > 0) toastMsgs.push(`• Category Report: อ่านข้อมูล ${loadedCategory} ไฟล์`);
-                    if(loadedVoid > 0) toastMsgs.push(`• Void Report: อ่านข้อมูล ${loadedVoid} ไฟล์`);
                     showToast(toastMsgs);
 
-                    if (loadedVoid > 0 && loadedMendori === 0 && loadedCategory === 0) switchGlobalTab('void');
-                    else if (loadedCategory > 0 && loadedMendori === 0) switchGlobalTab('foodstory');
+                    if (loadedCategory > 0 && loadedMendori === 0) switchGlobalTab('foodstory');
                     else switchGlobalTab('mendori');
                 }
             } catch (err) {
@@ -743,7 +623,7 @@
             overlay.classList.remove('hidden');
             overlay.classList.add('flex');
             
-            let loadedMendori = 0, loadedCategory = 0, loadedVoid = 0;
+            let loadedMendori = 0, loadedCategory = 0;
 
             try {
                 for (let i = 0; i < files.length; i++) {
@@ -765,13 +645,16 @@
                         
                         const sampleStr = rawJson.slice(0, 20).map(r => r ? r.join('').toLowerCase() : '').join(' ').replace(/[\s\uFEFF\u200B]/g, '');
                         
-                        const isVoid = name.includes('void') || name.includes('สถานะสั่ง') || name.includes('สถานะการสั่ง') || (sampleStr.includes('ชื่อสินค้า') && sampleStr.includes('สถานะ'));
-                        const isCategory = name.includes('category') || name.includes('ยอดขายสินค้าตามวัน') || (sampleStr.includes('ชื่อสินค้า') && sampleStr.includes('จำนวนการขาย') && !isVoid);
+                        const isVoid = name.includes('void') || name.includes('สถานะสั่ง') || name.includes('สถานะการสั่ง') || (sampleStr.includes('ชื่อสินค้า') && (sampleStr.includes('สถานะ') || sampleStr.includes('status')));
+                        
+                        if (isVoid) {
+                            continue; // ข้าม Void ไปก่อน
+                        }
+
+                        const isCategory = name.includes('category') || name.includes('ยอดขายสินค้าตามวัน') || (sampleStr.includes('ชื่อสินค้า') && sampleStr.includes('จำนวน'));
 
                         if (isCategory) {
                             window.processCategoryData(rawJson); loadedCategory++;
-                        } else if (isVoid) {
-                            if(typeof window.processVoidData === 'function') { window.processVoidData(rawJson); loadedVoid++; }
                         } else if (sampleStr.includes('ประเภทการชำระเงิน')) {
                             const parsed = parsePaymentData(rawJson, file.name);
                             if(parsed) { mergeDataset(parsed, 'payment'); loadedMendori++; }
@@ -790,7 +673,7 @@
 
                 normalizeDatasets();
 
-                if (loadedMendori > 0 || loadedCategory > 0 || loadedVoid > 0) {
+                if (loadedMendori > 0 || loadedCategory > 0) {
                     if (loadedMendori > 0) {
                         document.getElementById('emptyState').classList.add('hidden');
                         document.getElementById('tabsWrapper').classList.remove('hidden');
@@ -810,11 +693,9 @@
                     let toastMsgs = [];
                     if(loadedMendori > 0) toastMsgs.push(`• Sales & Payment: อัปเดต ${loadedMendori} ไฟล์`);
                     if(loadedCategory > 0) toastMsgs.push(`• Category Report: อัปเดต ${loadedCategory} ไฟล์`);
-                    if(loadedVoid > 0) toastMsgs.push(`• Void Report: อัปเดต ${loadedVoid} ไฟล์`);
                     showToast(toastMsgs);
 
-                    if (loadedVoid > 0 && loadedMendori === 0 && loadedCategory === 0) switchGlobalTab('void');
-                    else if (loadedCategory > 0 && loadedMendori === 0) switchGlobalTab('foodstory');
+                    if (loadedCategory > 0 && loadedMendori === 0) switchGlobalTab('foodstory');
                     else switchGlobalTab('mendori');
                 } else {
                     alert("ไม่พบข้อมูลตารางที่ตรงกับระบบ (ไฟล์อาจว่างเปล่า หรือไม่ใช่ไฟล์รายงานของร้าน)");
