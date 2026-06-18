@@ -697,29 +697,43 @@
             const months = ['01','02','03','04','05','06','07','08','09','10','11','12'];
             const years = ['2024', '2025', '2026', '2027'];
             const exts = ['.csv', '.xlsx']; 
+            const prefix = './data/'; // ค้นหาแค่ในโฟลเดอร์ data/ เท่านั้น (ลดจำนวนไฟล์ที่ต้องเดาลงครึ่งนึง)
             const urlsToTry = [];
             
-            const prefixes = ['./', './data/'];
-            const baseTypes = ['sales', 'payment', 'category', 'void', 'ยอดขาย', 'การชำระเงิน', 'หมวดสินค้า', 'สถานะการสั่ง'];
+            const engTypes = ['sales', 'payment', 'category', 'void'];
+            const thTypes = ['ยอดขาย', 'การชำระเงิน', 'หมวดสินค้า', 'สถานะการสั่ง'];
 
-            prefixes.forEach(prefix => {
-                baseTypes.forEach(type => {
-                    months.forEach(month => {
-                        exts.forEach(ext => urlsToTry.push(`${prefix}${type}-${month}${ext}`));
-                        years.forEach(year => {
-                            exts.forEach(ext => urlsToTry.push(`${prefix}${type}-${month}-${year}${ext}`));
-                        });
+            // 1. แบบชื่อภาษาอังกฤษ ไม่มีปี (Priority แรก)
+            engTypes.forEach(type => {
+                months.forEach(month => {
+                    exts.forEach(ext => urlsToTry.push(`${prefix}${type}-${month}${ext}`));
+                });
+            });
+
+            // 2. แบบชื่อภาษาอังกฤษ มีปี
+            engTypes.forEach(type => {
+                months.forEach(month => {
+                    years.forEach(year => {
+                        exts.forEach(ext => urlsToTry.push(`${prefix}${type}-${month}-${year}${ext}`));
                     });
                 });
-                urlsToTry.push(`${prefix}ยอดขายสินค้าตามวัน.csv`, `${prefix}ยอดขายสินค้าตามวัน.xlsx`);
-                urlsToTry.push(`${prefix}รายงานสถานะการสั่งสินค้า.csv`, `${prefix}รายงานสถานะการสั่งสินค้า.xlsx`);
             });
+
+            // 3. แบบชื่อภาษาไทย (เผื่อไว้)
+            thTypes.forEach(type => {
+                months.forEach(month => {
+                    exts.forEach(ext => urlsToTry.push(`${prefix}${type}-${month}${ext}`));
+                });
+            });
+
+            urlsToTry.push(`${prefix}ยอดขายสินค้าตามวัน.csv`, `${prefix}ยอดขายสินค้าตามวัน.xlsx`);
+            urlsToTry.push(`${prefix}รายงานสถานะการสั่งสินค้า.csv`, `${prefix}รายงานสถานะการสั่งสินค้า.xlsx`);
 
             let loadedMendori = 0, loadedCategory = 0, loadedVoid = 0;
 
             try {
-                // ทยอย Fetch ทีละชุดเพื่อป้องกันปัญหา (net::ERR_INSUFFICIENT_RESOURCES) และ Bypass Vercel WAF/DDoS Protection
-                const chunkSize = 20; 
+                // ทยอย Fetch ทีละชุดเพื่อป้องกันปัญหา (net::ERR_INSUFFICIENT_RESOURCES)
+                const chunkSize = 40; // เพิ่มจำนวนไฟล์ต่อรอบ
                 const results = [];
                 
                 for (let i = 0; i < urlsToTry.length; i += chunkSize) {
@@ -739,8 +753,8 @@
                     const chunkResults = await Promise.all(fetchPromises);
                     results.push(...chunkResults);
                     
-                    // หน่วงเวลา 250ms เพื่อให้ Server พักหายใจ
-                    await new Promise(resolve => setTimeout(resolve, 250));
+                    // ลดเวลาหน่วงลงเหลือ 50ms (พอให้ Vercel ไม่มองว่าโดนยิง แต่ผู้ใช้ไม่ต้องรอนาน)
+                    await new Promise(resolve => setTimeout(resolve, 50));
                 }
 
                 const validResults = results.filter(r => r !== null);
@@ -984,11 +998,13 @@
                 tryNextExtension();
             };
 
-            // ดึง Logo และ Photo จากหน้าสุด (Root) และจาก /data/ ได้ทั้งสองที่
+            // ดึง Logo จากหน้าสุด (Root)
             autoLoadImage('auto-logo', ['./Logo', './logo']);
-            autoLoadImage('auto-photo-01', ['./photo-01', './Photo-01', './data/photo-01']);
-            autoLoadImage('auto-photo-02', ['./photo-02', './Photo-02', './data/photo-02']);
-            autoLoadImage('auto-photo-03', ['./photo-03', './Photo-03', './data/photo-03']);
+            
+            // ดึง Photo จากโฟลเดอร์ /data/ เท่านั้น (ตามที่ตั้งค่าไว้ใน GitHub)
+            autoLoadImage('auto-photo-01', ['./data/photo-01', './data/Photo-01']);
+            autoLoadImage('auto-photo-02', ['./data/photo-02', './data/Photo-02']);
+            autoLoadImage('auto-photo-03', ['./data/photo-03', './data/Photo-03']);
 
             const customDropZones = document.querySelectorAll('.custom-drop-zone');
             
