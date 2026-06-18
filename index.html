@@ -678,10 +678,6 @@
                 const pMonth = pKey.split(' ')[0];
                 
                 let match = dailyKeys.find(dKey => dKey.startsWith(pMonth));
-                
-                if (!match && dailyKeys.length === 1) {
-                    match = dailyKeys[0];
-                }
 
                 if (match) {
                     datasets[match].paymentData = (datasets[match].paymentData && datasets[match].paymentData.length > 0) 
@@ -741,7 +737,8 @@
             let loadedMendori = 0, loadedCategory = 0, loadedVoid = 0;
 
             try {
-                const fetchPromises = urlsToTry.map(filePath => {
+                // ทยอย Fetch ทีละชุดเพื่อป้องกันปัญหา (net::ERR_INSUFFICIENT_RESOURCES)
+                const fetchFns = urlsToTry.map(filePath => () => {
                     const cacheBuster = `?t=${new Date().getTime()}`; 
                     return fetch(encodeURI(filePath) + cacheBuster, { cache: 'no-store' }).then(async (res) => {
                         if (!res.ok) return null;
@@ -752,7 +749,14 @@
                     }).catch(() => null);
                 });
 
-                const results = await Promise.all(fetchPromises);
+                const results = [];
+                const chunkSize = 50; // โหลดทีละ 50 ไฟล์
+                for (let i = 0; i < fetchFns.length; i += chunkSize) {
+                    const chunk = fetchFns.slice(i, i + chunkSize);
+                    const chunkResults = await Promise.all(chunk.map(fn => fn()));
+                    results.push(...chunkResults);
+                }
+
                 const validResults = results.filter(r => r !== null);
 
                 for (const fileData of validResults) {
@@ -805,7 +809,7 @@
                         
                         const validKeys = Object.keys(datasets).filter(k => {
                             const d = datasets[k];
-                            return d.summary && (d.summary.totalNetSales > 0 || d.summary.totalBills > 0);
+                            return (d.summary && (d.summary.totalNetSales > 0 || d.summary.totalBills > 0)) || (d.paymentData && d.paymentData.length > 0);
                         });
                         
                         if(validKeys.length > 0) {
@@ -896,7 +900,7 @@
                         
                         const validKeys = Object.keys(datasets).filter(k => {
                             const d = datasets[k];
-                            return d.summary && (d.summary.totalNetSales > 0 || d.summary.totalBills > 0);
+                            return (d.summary && (d.summary.totalNetSales > 0 || d.summary.totalBills > 0)) || (d.paymentData && d.paymentData.length > 0);
                         });
                         
                         if(validKeys.length > 0) {
@@ -1281,7 +1285,7 @@
             
             const validKeys = Object.keys(datasets).filter(k => {
                 const d = datasets[k];
-                return d.summary && (d.summary.totalNetSales > 0 || d.summary.totalBills > 0);
+                return (d.summary && (d.summary.totalNetSales > 0 || d.summary.totalBills > 0)) || (d.paymentData && d.paymentData.length > 0);
             });
             
             const tabKeys = validKeys.sort((a, b) => (datasets[a].sortDate || 0) - (datasets[b].sortDate || 0));
@@ -1341,7 +1345,7 @@
             
             const validKeys = Object.keys(datasets).filter(k => {
                 const d = datasets[k];
-                return d.summary && (d.summary.totalNetSales > 0 || d.summary.totalBills > 0);
+                return (d.summary && (d.summary.totalNetSales > 0 || d.summary.totalBills > 0)) || (d.paymentData && d.paymentData.length > 0);
             });
             const sortedKeys = validKeys.sort((a, b) => (datasets[a].sortDate || 0) - (datasets[b].sortDate || 0));
             const totalMonths = sortedKeys.length;
