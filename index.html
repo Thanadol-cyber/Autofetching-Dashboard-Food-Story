@@ -962,12 +962,21 @@
                 const imgElement = document.getElementById(imgId);
                 const textContainer = imgElement.previousElementSibling;
                 const extensions = ['.jpg', '.png', '.jpeg', '.webp', '.JPG', '.PNG', '.JPEG'];
-                let currentTry = 0;
+                // แปลงให้รองรับการใส่ชื่อไฟล์แบบ Array (เพื่อหาทั้ง Logo และ logo)
+                const bases = Array.isArray(baseFilename) ? baseFilename : [baseFilename];
+                let currentBase = 0;
+                let currentExt = 0;
 
                 const tryNextExtension = () => {
-                    if (currentTry < extensions.length) {
-                        imgElement.src = baseFilename + extensions[currentTry] + '?t=' + new Date().getTime();
-                        currentTry++;
+                    if (currentBase < bases.length) {
+                        if (currentExt < extensions.length) {
+                            imgElement.src = bases[currentBase] + extensions[currentExt] + '?t=' + new Date().getTime();
+                            currentExt++;
+                        } else {
+                            currentBase++;
+                            currentExt = 0;
+                            tryNextExtension();
+                        }
                     } else {
                         imgElement.classList.add('hidden');
                         if(textContainer) textContainer.classList.remove('hidden');
@@ -986,7 +995,10 @@
                 tryNextExtension();
             };
 
-            autoLoadImage('auto-logo', './data/logo');
+            // ดึง Logo จากโฟลเดอร์ด้านนอกสุด (ลองค้นหาทั้งคำว่า Logo และ logo)
+            autoLoadImage('auto-logo', ['./Logo', './logo']);
+            
+            // ดึงรูปภาพโซนอื่นๆ จากโฟลเดอร์ /data/ ตามปกติ
             autoLoadImage('auto-photo-01', './data/photo-01');
             autoLoadImage('auto-photo-02', './data/photo-02');
             autoLoadImage('auto-photo-03', './data/photo-03');
