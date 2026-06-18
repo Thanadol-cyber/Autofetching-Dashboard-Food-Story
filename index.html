@@ -678,6 +678,13 @@
                 
                 let match = dailyKeys.find(dKey => dKey.startsWith(pMonth));
 
+                // --- เพิ่มตรรกะ Fallback กลับเข้ามา ---
+                // ถ้าหาชื่อเดือนที่ตรงกันไม่เจอ แต่ในระบบมียอดขายอยู่แค่ "เดือนเดียว" ให้จับรวมกันอัตโนมัติ
+                if (!match && dailyKeys.length === 1) {
+                    match = dailyKeys[0];
+                }
+                // ------------------------------
+
                 if (match) {
                     datasets[match].paymentData = (datasets[match].paymentData && datasets[match].paymentData.length > 0) 
                         ? datasets[match].paymentData.concat(datasets[pKey].paymentData)
